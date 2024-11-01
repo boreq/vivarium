@@ -1,6 +1,6 @@
 use crate::errors::Result;
 use anyhow::anyhow;
-use chrono::{DateTime, Local, NaiveTime, TimeDelta, Timelike};
+use chrono::{NaiveTime, TimeDelta, Timelike};
 
 #[derive(Copy, Debug, Clone, PartialEq)]
 pub struct ScheduledActivation {
