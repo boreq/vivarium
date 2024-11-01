@@ -2,7 +2,7 @@ use crate::errors::Result;
 use anyhow::anyhow;
 use chrono::{DateTime, Local, NaiveTime, TimeDelta, Timelike};
 
-#[derive(Copy, Debug, Clone)]
+#[derive(Copy, Debug, Clone, PartialEq)]
 pub struct ScheduledActivation {
     when: NaiveTime,
     for_seconds: u32,
@@ -51,26 +51,93 @@ impl ScheduledActivation {
     }
 }
 
-pub struct ScheduledActivations<'a> {
-    activations: &'a [ScheduledActivation],
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScheduledActivations {
+    activations: Vec<ScheduledActivation>,
 }
 
-impl ScheduledActivations<'_> {
-    pub fn new<'a>(activations: &'a [ScheduledActivation]) -> Result<ScheduledActivations<'a>> {
+impl ScheduledActivations {
+    pub fn new<'a>(activations: &[ScheduledActivation]) -> Result<ScheduledActivations> {
         if activations.len() == 0 {
             return Err(anyhow!("activations can't be empty"));
         }
+
+        let mut v = vec![];
         for (i, a) in activations.iter().enumerate() {
             for (j, b) in activations.iter().enumerate() {
                 if i != j && a.overlaps(b) {
                     return Err(anyhow!("activations can't overlap"));
                 }
             }
+            v.push(a.clone());
         }
 
-        Ok(ScheduledActivations {
-            activations: activations,
-        })
+        Ok(ScheduledActivations { activations: v })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct OutputName {
+    name: String,
+}
+
+impl OutputName {
+    pub fn new(name: impl Into<String>) -> Result<Self> {
+        let name = name.into();
+        if name.is_empty() {
+            return Err(anyhow!("output name can't be empty"));
+        }
+        Ok(Self { name })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PinNumber {
+    number: u32,
+}
+
+impl PinNumber {
+    pub fn new(number: u32) -> Result<Self> {
+        // todo validate pin numbers
+        Ok(Self { number })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Output {
+    name: OutputName,
+    pin: PinNumber,
+    activations: ScheduledActivations,
+}
+
+impl Output {
+    pub fn new(name: OutputName, pin: PinNumber, activations: ScheduledActivations) -> Self {
+        Self {
+            name,
+            pin,
+            activations,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Outputs {
+    outputs: Vec<Output>,
+}
+
+impl Outputs {
+    pub fn new(outputs: &[Output]) -> Result<Self> {
+        let mut v = vec![];
+        for (i, a) in outputs.iter().enumerate() {
+            for (j, b) in outputs.iter().enumerate() {
+                if i != j && a.name == b.name {
+                    return Err(anyhow!("identical output names"));
+                }
+            }
+            v.push(a.clone());
+        }
+
+        Ok(Self { outputs: v })
     }
 }
 

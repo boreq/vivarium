@@ -1,0 +1,19 @@
+[[outputs]]
+name = "Output 1"
+pin = 27
+
+[[outputs.activations]]
+when = "17:30"
+for = 600
+
+[[outputs]]
+name = "Output 2"
+pin = 28
+
+[[outputs.activations]]
+when = "17:30"
+for = 600
+
+[[outputs.activations]]
+when = "18:30"
+for = 600
