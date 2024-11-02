@@ -9,9 +9,19 @@ pub struct ScheduledActivation {
 }
 
 impl ScheduledActivation {
+    const SECONDS_IN_AN_IMAGINARY_DAY: u32 = 24 * 60 * 60;
+
     pub fn new(when: NaiveTime, for_seconds: u32) -> Result<Self> {
         if for_seconds == 0 {
             return Err(anyhow!("activating for 0 seconds is nonsense"));
+        }
+
+        if for_seconds > ScheduledActivation::SECONDS_IN_AN_IMAGINARY_DAY {
+            return Err(anyhow!(
+                format!(
+                "since this type effectively represents durations on an imaginary clock face this time the day really is up to {} seconds long and it isn't just the programmer's delusion; the provided for_seconds exceeds that",
+                ScheduledActivation::SECONDS_IN_AN_IMAGINARY_DAY
+            )));
         }
 
         Ok(Self { when, for_seconds })
@@ -74,6 +84,15 @@ impl ScheduledActivations {
 
         Ok(ScheduledActivations { activations: v })
     }
+
+    pub fn has_inside(&self, time: NaiveTime) -> bool {
+        for activation in &self.activations {
+            if activation.has_inside(&time) {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -93,13 +112,23 @@ impl OutputName {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PinNumber {
-    number: u32,
+    number: u8,
 }
 
 impl PinNumber {
-    pub fn new(number: u32) -> Result<Self> {
+    pub fn new(number: u8) -> Result<Self> {
         // todo validate pin numbers
         Ok(Self { number })
+    }
+
+    pub fn number(&self) -> u8 {
+        self.number
+    }
+}
+
+impl Into<u8> for &PinNumber {
+    fn into(self) -> u8 {
+        self.number
     }
 }
 
@@ -130,8 +159,16 @@ impl Outputs {
         let mut v = vec![];
         for (i, a) in outputs.iter().enumerate() {
             for (j, b) in outputs.iter().enumerate() {
-                if i != j && a.name == b.name {
+                if i == j {
+                    continue;
+                }
+
+                if a.name == b.name {
                     return Err(anyhow!("identical output names"));
+                }
+
+                if a.pin == b.pin {
+                    return Err(anyhow!("duplicate pin numbers"));
                 }
             }
             v.push(a.clone());
@@ -139,7 +176,77 @@ impl Outputs {
 
         Ok(Self { outputs: v })
     }
+
+    pub fn outputs(&self) -> &[Output] {
+        &self.outputs
+    }
 }
+
+pub trait GPIO<A: OutputPin> {
+    fn output(&self, number: &PinNumber) -> Result<A>;
+}
+
+pub trait OutputPin {
+    fn set_low(&mut self);
+    fn set_high(&mut self);
+}
+
+pub trait CurrentTimeProvider {
+    fn now(&self) -> NaiveTime;
+}
+
+struct OutputWithPin<A: OutputPin> {
+    definition: Output,
+    pin: A,
+}
+
+pub struct Executor<A: OutputPin, C: CurrentTimeProvider> {
+    outputs: Vec<OutputWithPin<A>>,
+    current_time_provider: C,
+}
+
+impl<A: OutputPin, C: CurrentTimeProvider> Executor<A, C> {
+    pub fn new<B: GPIO<A>>(
+        outputs: &Outputs,
+        gpio: B,
+        current_time_provider: C,
+    ) -> Result<Executor<A, C>> {
+        let outputs_with_pin: Result<Vec<OutputWithPin<A>>> = outputs
+            .outputs()
+            .iter()
+            .map(|v| {
+                Ok(OutputWithPin {
+                    definition: v.clone(),
+                    pin: gpio.output(&v.pin)?,
+                })
+            })
+            .collect();
+
+        Ok(Executor {
+            outputs: outputs_with_pin?,
+            current_time_provider,
+        })
+    }
+
+    pub fn update_outputs(&mut self) {
+        let now = self.current_time_provider.now();
+
+        for output in &mut self.outputs {
+            if output.definition.activations.has_inside(now) {
+                output.pin.set_high();
+            } else {
+                output.pin.set_low();
+            }
+        }
+    }
+
+    pub fn fail_safe(&mut self) {
+        for output in &mut self.outputs {
+            output.pin.set_low();
+        }
+    }
+}
+pub struct OutputExecutor {}
 
 #[cfg(test)]
 mod tests {

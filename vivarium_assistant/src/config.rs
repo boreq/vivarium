@@ -8,4 +8,8 @@ impl Config {
     pub fn new(outputs: Outputs) -> Result<Config> {
         Ok(Self { outputs })
     }
+
+    pub fn outputs(&self) -> &Outputs {
+        &self.outputs
+    }
 }

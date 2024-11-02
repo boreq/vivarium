@@ -35,7 +35,7 @@ struct ConfigTransport {
 #[derive(Deserialize)]
 struct OutputTransport {
     name: String,
-    pin: u32,
+    pin: u8,
     activations: Vec<ScheduledActivationTransport>,
 }
 
