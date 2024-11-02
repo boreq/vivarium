@@ -24,7 +24,7 @@ pub fn load(config: &str) -> Result<Config> {
         ));
     }
 
-    Ok(Config::new(Outputs::new(&outputs_vec)?)?)
+    Config::new(Outputs::new(&outputs_vec)?)
 }
 
 #[derive(Deserialize)]

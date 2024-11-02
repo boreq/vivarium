@@ -2,7 +2,7 @@ use crate::{
     domain::{self, PinNumber},
     errors::Result,
 };
-use chrono::{Local, Utc};
+use chrono::Local;
 pub mod config;
 pub mod raspberrypi;
 
@@ -21,11 +21,23 @@ impl domain::CurrentTimeProvider for CurrentTimeProvider {
     }
 }
 
+impl Default for CurrentTimeProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct MockGPIO {}
 
 impl MockGPIO {
     pub fn new() -> Self {
         Self {}
+    }
+}
+
+impl Default for MockGPIO {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

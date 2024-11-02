@@ -50,9 +50,9 @@ impl ScheduledActivation {
         let jumps_over_midnight = end.hour() < start.hour();
 
         if jumps_over_midnight {
-            return time >= &start || time <= &end;
+            time >= &start || time <= &end
         } else {
-            return time >= &start && time <= &end;
+            time >= &start && time <= &end
         }
     }
 
@@ -67,8 +67,8 @@ pub struct ScheduledActivations {
 }
 
 impl ScheduledActivations {
-    pub fn new<'a>(activations: &[ScheduledActivation]) -> Result<ScheduledActivations> {
-        if activations.len() == 0 {
+    pub fn new(activations: &[ScheduledActivation]) -> Result<ScheduledActivations> {
+        if activations.is_empty() {
             return Err(anyhow!("activations can't be empty"));
         }
 
@@ -79,7 +79,7 @@ impl ScheduledActivations {
                     return Err(anyhow!("activations can't overlap"));
                 }
             }
-            v.push(a.clone());
+            v.push(*a);
         }
 
         Ok(ScheduledActivations { activations: v })
@@ -126,9 +126,9 @@ impl PinNumber {
     }
 }
 
-impl Into<u8> for &PinNumber {
-    fn into(self) -> u8 {
-        self.number
+impl From<&PinNumber> for u8 {
+    fn from(val: &PinNumber) -> Self {
+        val.number
     }
 }
 
