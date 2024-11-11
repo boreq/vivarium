@@ -9,9 +9,14 @@ possible moment.
 ### Automation 
 
 See `./automation`, use `kicad`. The schematic doesn't have pulldowns on pins as
-it seems to work without them because of reasons. GPIO pins used are `{22, 23,
-24, 25}` as per schematic, check to figure out which output is which but they go
-in sequence or reverse sequence.
+it seems to work without them because of reasons.
+
+GPIO pins used are `{22, 23, 24, 25}` as per schematic:
+- `GPIO 22` = relay `M4` = output `?`
+- `GPIO 23` = relay `M3` = output `?`
+- `GPIO 24` = relay `M2` = output `?`
+- `GPIO 25` = relay `M1` = output `?`
+
 
 This is `Raspberry Pi 1 Model B`.
 
