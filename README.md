@@ -21,7 +21,8 @@ possible moment.
 
 ### Planting
 
-There is a layer of sphagnum moss + orchid bark + coco coir mixed 1-1-1. There is only spaghnum moss in the pots.
+There is a layer of sphagnum moss + orchid bark + coco coir mixed 1-1-1 at the
+bottom of the tank. There is only spaghnum moss in the pots.
 
 ### Automation 
 
