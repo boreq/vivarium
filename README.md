@@ -19,6 +19,10 @@ possible moment.
 - [*Microsorium pteropus var petite*](https://duckduckgo.com/?q=Microsorium+pteropus+var+petite&iar=images&iax=images&ia=images)
 - [*Limnobium laevigatum*](https://duckduckgo.com/?q=Limnobium+laevigatum&iar=images&iax=images&ia=images)
 
+### Animals
+
+- [*Armadillidium klugii*](https://duckduckgo.com/?t=ffab&q=Armadillidium+klugii&iax=images&ia=images)
+
 ### Planting
 
 There is a layer of sphagnum moss + orchid bark + coco coir mixed 1-1-1 at the
