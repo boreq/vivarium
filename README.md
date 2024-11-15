@@ -21,7 +21,7 @@ possible moment.
 
 ### Animals
 
-- [*Armadillidium klugii*](https://duckduckgo.com/?t=ffab&q=Armadillidium+klugii&iax=images&ia=images)
+- [*Armadillidium klugii*]()
 
 ### Planting
 
@@ -98,7 +98,9 @@ Flux: 900lm/m
 Recommended power supply: 10W per meter
 ```
 
-The strips were self-adhesive, no extra glue was used.
+The strips were self-adhesive, no extra glue was used which was a mistake as
+they started coming off, perhaps due to moisture. I'm using the strong double
+sided tape to put them back on. We will see if that will help.
 
 The power connector is one of the standard DC connectors, `2.5/5.5` or
 `2.1/5.5`. The connector on this power supply was replaced and it unscrews. It
