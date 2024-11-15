@@ -21,7 +21,7 @@ possible moment.
 
 ### Animals
 
-- [*Armadillidium klugii*]()
+- [*Armadillidium klugii*](https://duckduckgo.com/?hps=1&q=Armadillidium+klugii&iax=images&ia=images)
 
 ### Planting
 
