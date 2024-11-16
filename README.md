@@ -10,13 +10,13 @@ possible moment.
 
 - [*Pellaea rotundifolia*](https://duckduckgo.com/?q=Pellaea+rotundifolia&iar=images&iax=images&ia=images)
 - [*Hemionitis arifolia*](https://duckduckgo.com/?q=Hemionitis+arifolia&iax=images&ia=images)
-- [*Nephrolepis cordifolia ‘Duffii’ Nefrolepis*](https://duckduckgo.com/?q=Nephrolepis+cordifolia+%E2%80%98Duffii%E2%80%99+Nefrolepis&iar=images&iax=images&ia=images)
+- [*Nephrolepis cordifolia* ‘Duffii’](https://duckduckgo.com/?q=Nephrolepis+cordifolia+%E2%80%98Duffii%E2%80%99+Nefrolepis&iar=images&iax=images&ia=images)
 - [*Pyrrosia nummularifolia*](https://duckduckgo.com/?q=Pyrrosia+nummularifolia&iax=images&ia=images)
 - [*Phymatosorus diversifolius*](https://duckduckgo.com/?q=Phymatosorus+diversifolius&iar=images&iax=images&ia=images)
 - [*Microgramma nitida*](https://duckduckgo.com/?q=Microgramma+nitida&iar=images&iax=images&ia=images)
 - [*Pleurozium schreberi*](https://duckduckgo.com/?q=Pleurozium+schreberi&iax=images&ia=images)
 - [*Polytrichum commune*](https://duckduckgo.com/?q=Polytrichum+commune&iax=images&ia=images)
-- [*Microsorium pteropus var petite*](https://duckduckgo.com/?q=Microsorium+pteropus+var+petite&iar=images&iax=images&ia=images)
+- [*Microsorium pteropus* var. *petite*](https://duckduckgo.com/?q=Microsorium+pteropus+var+petite&iar=images&iax=images&ia=images)
 - [*Limnobium laevigatum*](https://duckduckgo.com/?q=Limnobium+laevigatum&iar=images&iax=images&ia=images)
 
 ### Animals
