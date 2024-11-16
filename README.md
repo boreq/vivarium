@@ -18,10 +18,13 @@ possible moment.
 - [*Polytrichum commune*](https://duckduckgo.com/?q=Polytrichum+commune&iax=images&ia=images)
 - [*Microsorium pteropus* var. *petite*](https://duckduckgo.com/?q=Microsorium+pteropus+var+petite&iar=images&iax=images&ia=images)
 - [*Limnobium laevigatum*](https://duckduckgo.com/?q=Limnobium+laevigatum&iar=images&iax=images&ia=images)
+- [*Anubias barteri* var. *nana*](https://duckduckgo.com/?t=ffab&q=Anubias+barteri+var.+nana&iax=images&ia=images)
 
 ### Animals
 
 - [*Armadillidium klugii*](https://duckduckgo.com/?hps=1&q=Armadillidium+klugii&iax=images&ia=images)
+- [*Caridina multidentata*](https://duckduckgo.com/?hps=1&q=Caridina+multidentata&iax=images&ia=images)
+- [*Clithon corona*](https://duckduckgo.com/?hps=1&q=Clithon+corona&iax=images&ia=images)
 
 ### Planting
 
