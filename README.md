@@ -26,6 +26,11 @@ possible moment.
 - [*Caridina multidentata*](https://duckduckgo.com/?hps=1&q=Caridina+multidentata&iax=images&ia=images)
 - [*Clithon corona*](https://duckduckgo.com/?hps=1&q=Clithon+corona&iax=images&ia=images)
 
+### DICP (Dynamic Isopod Configuration Protocol) identifiers
+
+- Baltazar
+- Brunhilda
+
 ### Planting
 
 There is a layer of sphagnum moss + orchid bark + coco coir mixed 1-1-1 at the
