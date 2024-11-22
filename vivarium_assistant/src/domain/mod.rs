@@ -1,3 +1,5 @@
+pub mod sensors;
+
 use crate::errors::Result;
 use anyhow::anyhow;
 use chrono::{NaiveTime, TimeDelta, Timelike};
