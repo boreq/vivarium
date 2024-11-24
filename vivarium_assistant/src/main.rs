@@ -3,10 +3,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{env, fs, thread};
 use vivarium_assistant::adapters::{self, config, raspberrypi};
-use vivarium_assistant::domain::Executor;
+use vivarium_assistant::domain::{Executor, OutputPin};
 use vivarium_assistant::errors::Result;
 
-fn main() -> Result<()> {
+async fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         return Err(anyhow!("usage: program path_to_config_file.toml"));
@@ -37,6 +37,11 @@ fn main() -> Result<()> {
         default_panic(info);
     }));
 
+    update_outputs_loop(executor).await;
+    Ok(())
+}
+
+async fn update_outputs_loop(executor: Arc<Mutex<Executor<OutputPin, _>>>) {
     loop {
         let mut executor = executor.lock().unwrap();
         executor.update_outputs();
