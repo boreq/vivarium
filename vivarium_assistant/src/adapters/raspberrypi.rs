@@ -63,6 +63,8 @@ const ATH20_ADDRESS: u16 = 0x38;
 // different. This is further complicated by the datasheet effectively making
 // statements such as "wait for X time and then the measurement MAY be completed
 // if not wait some more for an unknown amount of time lol".
+//
+// TODO: automatically set slave address, right now this isn't done correctly in all places.
 pub struct AHT20 {
     i2c: i2c::I2c,
 }
@@ -85,6 +87,7 @@ impl AHT20 {
         thread::sleep(Duration::new(0, 40 * 1000000));
 
         if !self.get_status()?.is_calibrated {
+            // this wasn't implemented as the sensor always seems to report that it's calibrated?
             return Err(anyhow!(
                 "the sensor claims that it's not calibrated, whatever that means"
             ));
