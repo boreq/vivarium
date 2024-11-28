@@ -1,8 +1,15 @@
+use std::{thread, time::Duration};
+
 use crate::{
-    domain::{self, PinNumber},
+    domain::{
+        self,
+        sensors::{Humidity, Temperature},
+        PinNumber,
+    },
     errors::Result,
 };
-use rppal::gpio;
+use anyhow::anyhow;
+use rppal::{gpio, i2c};
 
 pub struct GPIO {
     gpio: gpio::Gpio,
@@ -44,61 +51,133 @@ impl domain::OutputPin for OutputPin {
     }
 }
 
+const ATH20_ADDRESS: u16 = 0x38;
 
-pub struct PressureTemperatureSensor {
-    i2c:
-
+// Partially based on the Adafruit's library. Unfortunately reading that code
+// it's really difficult to guess the author's intentions. In a couple of places
+// it uses incorrect commands not present in the datasheet (as far as I can
+// tell, it's possible I can't convert between dec and hex), it caches the data
+// in a bit of a weird way for some reason etc. It is therefore possible that
+// the mistakes from that implementation were carried over here or I made a lot
+// of new mistakes since my resulting implementation seems to be a bit
+// different. This is further complicated by the datasheet effectively making
+// statements such as "wait for X time and then the measurement MAY be completed
+// if not wait some more for an unknown amount of time lol".
+pub struct AHT20 {
+    i2c: i2c::I2c,
 }
 
-impl  PressureTemperatureSensor {
-    pub fn new()  -> {
-
+impl AHT20 {
+    pub fn new(i2c: i2c::I2c) -> Result<Self> {
+        Ok(Self { i2c })
     }
 
-    pub fn begin() {
-        if (isConnected() == false)
-        return false;
-
-    //Wait 40 ms after power-on before reading temp or humidity. Datasheet pg 8
-    delay(40);
-
-    //Check if the calibrated bit is set. If not, init the sensor.
-    if (isCalibrated() == false)
-    {
-        //Send 0xBE0800
-        initialize();
-
-        //Immediately trigger a measurement. Send 0xAC3300
-        triggerMeasurement();
-
-        delay(75); //Wait for measurement to complete
-
-        uint8_t counter = 0;
-        while (isBusy())
-        {
-            delay(1);
-            if (counter++ > 100)
-                return (false); //Give up after 100ms
+    pub fn measure(&mut self) -> Result<AHT20Measurement> {
+        match self.confirm_connected() {
+            Ok(_) => {
+                println!("connected");
+            }
+            Err(_) => {
+                println!("not connected");
+            }
         }
 
-        //This calibration sequence is not completely proven. It's not clear how and when the cal bit clears
-        //This seems to work but it's not easily testable
-        if (isCalibrated() == false)
-        {
-            return (false);
+        thread::sleep(Duration::new(0, 40 * 1000000));
+
+        if !self.get_status()?.is_calibrated {
+            return Err(anyhow!(
+                "the sensor claims that it's not calibrated, whatever that means"
+            ));
         }
+
+        self.trigger_measurement()?;
+        thread::sleep(Duration::new(0, 80 * 1000000));
+
+        for _ in 0..100 {
+            thread::sleep(Duration::new(0, 1 * 1000000));
+            if !self.get_status()?.is_busy {
+                return self.readData();
+            }
+        }
+
+        Err(anyhow!("the sensor keeps claiming that it's busy"))
     }
 
-    //Check that the cal bit has been set
-    if (isCalibrated() == false)
-        return false;
+    // todo: this seems useless, just try reading the data?
+    fn confirm_connected(&mut self) -> Result<()> {
+        if let Ok(_) = self.send(&[]) {
+            return Ok(());
+        }
 
-    //Mark all datums as fresh (not read before)
-    sensorQueried.temperature = true;
-    sensorQueried.humidity = true;
-
-    return true;
+        // wait and then retry if we fail
+        // the arduino library uses those timings
+        thread::sleep(Duration::new(0, 20 * 1000000));
+        if let Err(err) = self.send(&[]) {
+            return Err(err);
+        }
+        Ok(())
     }
 
+    fn get_status(&mut self) -> Result<AHT20Status> {
+        let mut buf: [u8; 1] = [0];
+        self.i2c.write_read(&[0x71], &mut buf)?;
+        AHT20Status::new(&buf)
+    }
 
+    fn trigger_measurement(&mut self) -> Result<()> {
+        self.i2c.block_write(0xAC, &[0x33, 0x00])?;
+        Ok(())
+    }
+
+    fn readData(&mut self) -> Result<AHT20Measurement> {
+        let mut buf: [u8; 6] = [0; 6];
+        self.i2c.read(&mut buf)?;
+
+        let mut humidity: u32 = 0;
+        humidity |= (buf[1] as u32) << (8 + 4);
+        humidity |= (buf[2] as u32) << 4;
+        humidity |= ((buf[3] & 0b11110000) as u32) >> 4;
+
+        let mut temperature: u32 = 0;
+        temperature |= ((buf[3] & 0b00001111) as u32) << (8 + 8);
+        temperature |= (buf[4] as u32) << 8;
+        temperature |= buf[5] as u32;
+
+        let temperature = (temperature as f32 / 1048576.0) * 200.0 - 50.0;
+        let humidity = (humidity as f32 / 1048576.0) * 100.0;
+
+        let temperature = Temperature::new(temperature)?;
+        let humidity = Humidity::new(humidity)?;
+
+        Ok(AHT20Measurement {
+            temperature,
+            humidity,
+        })
+    }
+
+    fn send(&mut self, buffer: &[u8]) -> Result<usize> {
+        self.i2c.set_slave_address(ATH20_ADDRESS)?;
+        Ok(self.i2c.write(buffer)?)
+    }
+}
+
+#[derive(Debug)]
+struct AHT20Status {
+    is_calibrated: bool,
+    is_busy: bool,
+}
+
+impl AHT20Status {
+    pub fn new(response: &[u8; 1]) -> Result<Self> {
+        Ok(Self {
+            is_calibrated: response[0] & (1 << 3) != 0,
+            is_busy: response[0] & (1 << 7) != 0,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct AHT20Measurement {
+    temperature: Temperature,
+    humidity: Humidity,
 }

@@ -1,33 +1,7 @@
+use crate::errors::Result;
 use anyhow::{anyhow, Error};
 
-use crate::errors::Error;
-
-pub struct Pressure {
-    pascals: f32,
-}
-
-impl Pressure {
-    pub fn new(pascals: f32) -> Result<Self> {
-        if !pascals.is_normal() {
-            return Err(anyhow!("WHY CAN'T YOU JUST BE NORMAL?!"));
-        }
-
-        if pascals == 0.0 {
-            return Err(anyhow!("fuck we have a serious problem because the atmosphere is gone"));
-        }
-
-        if pascals < 0 {
-            return Err(anyhow!("fuck we have a serious problem because the atmophere is pulling on us"));
-        }
-
-        Ok(Self{pascals})
-    }
-
-    pub fn pascals(&self) -> f32 {
-        self.pascals
-    }
-}
-
+#[derive(Debug)]
 pub struct Humidity {
     percentage: f32,
 }
@@ -38,7 +12,7 @@ impl Humidity {
             return Err(anyhow!("WHY CAN'T YOU JUST BE NORMAL?!"));
         }
 
-        if percentage < 0 {
+        if percentage < 0.0 {
             return Err(anyhow!("humidity can't be negative"));
         }
 
@@ -46,7 +20,7 @@ impl Humidity {
             return Err(anyhow!("humidity can't be above 100"));
         }
 
-        Ok(Self{percentage})
+        Ok(Self { percentage })
     }
 
     pub fn percentage(&self) -> f32 {
@@ -54,6 +28,7 @@ impl Humidity {
     }
 }
 
+#[derive(Debug)]
 pub struct Temperature {
     celcius: f32,
 }
@@ -64,7 +39,7 @@ impl Temperature {
             return Err(anyhow!("WHY CAN'T YOU JUST BE NORMAL?!"));
         }
 
-        if celcius < 0 {
+        if celcius < 0.0 {
             return Err(anyhow!("time to worry 🥶"));
         }
 
@@ -72,7 +47,7 @@ impl Temperature {
             return Err(anyhow!("time to worry 🥵"));
         }
 
-        Ok(Self{celcius})
+        Ok(Self { celcius })
     }
 
     pub fn celcius(&self) -> f32 {

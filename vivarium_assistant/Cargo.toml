@@ -13,3 +13,7 @@ toml = "0.8.19"
 
 [features]
 not_raspberry_pi = []
+
+[[bin]]
+name = "aht20"
+path = "src/bin/aht20.rs"
