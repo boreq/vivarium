@@ -101,7 +101,7 @@ impl SensorName {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct WaterLevelSensor {
     name: SensorName,
     echo_pin: PinNumber,
@@ -138,6 +138,7 @@ impl WaterLevelSensor {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct WaterLevelSensors {
     sensors: Vec<WaterLevelSensor>,
 }

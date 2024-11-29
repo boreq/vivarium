@@ -1,5 +1,5 @@
 use crate::domain::outputs::ScheduledActivation;
-use crate::domain::sensors::{Distance, SensorName};
+use crate::domain::sensors::{Distance, SensorName, WaterLevelSensors};
 use crate::errors::Error;
 use crate::{
     config::Config,
@@ -16,9 +16,9 @@ use serde::Deserialize;
 pub fn load(config: &str) -> Result<Config> {
     let config: ConfigTransport = toml::from_str(config)?;
 
-    let mut outputs_vec = vec![];
+    let mut outputs = vec![];
     for output in &config.outputs {
-        outputs_vec.push(Output::try_from(output)?);
+        outputs.push(Output::try_from(output)?);
     }
 
     let mut water_level_sensors = vec![];
@@ -26,7 +26,10 @@ pub fn load(config: &str) -> Result<Config> {
         water_level_sensors.push(WaterLevelSensor::try_from(water_level_sensor)?);
     }
 
-    Config::new(Outputs::new(&outputs_vec)?)
+    Config::new(
+        Outputs::new(&outputs)?,
+        WaterLevelSensors::new(&water_level_sensors)?,
+    )
 }
 
 #[derive(Deserialize)]
@@ -93,7 +96,10 @@ impl TryFrom<&WaterLevelSensorTransport> for WaterLevelSensor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{domain::outputs::ScheduledActivation, fixtures};
+    use crate::{
+        domain::{outputs::ScheduledActivation, sensors::WaterLevelSensors},
+        fixtures,
+    };
     use std::fs;
 
     #[test]
@@ -105,39 +111,51 @@ mod tests {
 
         println!("{:?}", config);
 
-        let expected_config = Config::new(Outputs::new(
-            vec![
-                Output::new(
-                    OutputName::new("Output 1")?,
-                    PinNumber::new(27)?,
-                    ScheduledActivations::new(
-                        vec![ScheduledActivation::new(
-                            NaiveTime::from_hms_opt(17, 30, 00).unwrap(),
-                            600,
-                        )?]
-                        .as_ref(),
-                    )?,
-                ),
-                Output::new(
-                    OutputName::new("Output 2")?,
-                    PinNumber::new(28)?,
-                    ScheduledActivations::new(
-                        vec![
-                            ScheduledActivation::new(
+        let expected_config = Config::new(
+            Outputs::new(
+                vec![
+                    Output::new(
+                        OutputName::new("Output 1")?,
+                        PinNumber::new(27)?,
+                        ScheduledActivations::new(
+                            vec![ScheduledActivation::new(
                                 NaiveTime::from_hms_opt(17, 30, 00).unwrap(),
                                 600,
-                            )?,
-                            ScheduledActivation::new(
-                                NaiveTime::from_hms_opt(18, 30, 00).unwrap(),
-                                600,
-                            )?,
-                        ]
-                        .as_ref(),
-                    )?,
-                ),
-            ]
-            .as_ref(),
-        )?)?;
+                            )?]
+                            .as_ref(),
+                        )?,
+                    ),
+                    Output::new(
+                        OutputName::new("Output 2")?,
+                        PinNumber::new(28)?,
+                        ScheduledActivations::new(
+                            vec![
+                                ScheduledActivation::new(
+                                    NaiveTime::from_hms_opt(17, 30, 00).unwrap(),
+                                    600,
+                                )?,
+                                ScheduledActivation::new(
+                                    NaiveTime::from_hms_opt(18, 30, 00).unwrap(),
+                                    600,
+                                )?,
+                            ]
+                            .as_ref(),
+                        )?,
+                    ),
+                ]
+                .as_ref(),
+            )?,
+            WaterLevelSensors::new(
+                vec![WaterLevelSensor::new(
+                    SensorName::new("Water level sensor")?,
+                    PinNumber::new(18)?,
+                    PinNumber::new(17)?,
+                    Distance::new(0.2)?,
+                    Distance::new(0.05)?,
+                )?]
+                .as_ref(),
+            )?,
+        )?;
 
         assert_eq!(config, expected_config);
 

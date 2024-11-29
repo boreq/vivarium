@@ -22,5 +22,5 @@ for = 600
 name = "Water level sensor"
 echo_pin=18
 trig_pin=17
-max_distance=5.0
-min_distance=20.0
+max_distance=0.05
+min_distance=0.20
