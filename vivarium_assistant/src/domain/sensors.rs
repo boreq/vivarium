@@ -1,7 +1,7 @@
 use std::{thread, time::Duration};
 
 use crate::errors::Result;
-use anyhow::{anyhow, Error};
+use anyhow::anyhow;
 
 use super::{InputPin, OutputPin};
 
@@ -17,11 +17,11 @@ impl Humidity {
         }
 
         if percentage < 0.0 {
-            return Err(anyhow!("humidity can't be negative"));
+            return Err(anyhow!("percentage can't be negative"));
         }
 
         if percentage > 100.0 {
-            return Err(anyhow!("humidity can't be above 100"));
+            return Err(anyhow!("percentage can't be above 100"));
         }
 
         Ok(Self { percentage })
@@ -44,11 +44,11 @@ impl Temperature {
         }
 
         if celcius < 0.0 {
-            return Err(anyhow!("time to worry 🥶"));
+            return Err(anyhow!("impossible value: time to worry 🥶"));
         }
 
         if celcius > 100.0 {
-            return Err(anyhow!("time to worry 🥵"));
+            return Err(anyhow!("impossible value: time to worry 🥵"));
         }
 
         Ok(Self { celcius })
@@ -75,9 +75,7 @@ impl Distance {
         }
 
         if meters > 5.0 {
-            return Err(anyhow!(
-                "distance too large, there is no way this is correct"
-            ));
+            return Err(anyhow!("impossible value: too large"));
         }
 
         Ok(Self { meters })
@@ -104,7 +102,7 @@ impl<A: OutputPin, B: InputPin> HCSR04<A, B> {
         r
     }
 
-    pub fn measure_with_interrupt(&mut self) -> Result<Distance> {
+    fn measure_with_interrupt(&mut self) -> Result<Distance> {
         self.echo.set_interrupt()?;
 
         self.trig.set_high();
@@ -125,7 +123,7 @@ impl<A: OutputPin, B: InputPin> HCSR04<A, B> {
         Ok(Distance::new(meters)?)
     }
 
-    pub fn poll_rising_edge(&mut self) -> Result<Duration> {
+    fn poll_rising_edge(&mut self) -> Result<Duration> {
         match self.echo.poll_interrupt(Some(self.timeout()))? {
             Some(event) => match event.trigger {
                 super::Trigger::RisingEdge => {
@@ -143,7 +141,7 @@ impl<A: OutputPin, B: InputPin> HCSR04<A, B> {
         }
     }
 
-    pub fn poll_falling_edge(&mut self) -> Result<Duration> {
+    fn poll_falling_edge(&mut self) -> Result<Duration> {
         match self.echo.poll_interrupt(Some(self.timeout()))? {
             Some(event) => match event.trigger {
                 super::Trigger::RisingEdge => {
@@ -161,7 +159,7 @@ impl<A: OutputPin, B: InputPin> HCSR04<A, B> {
         }
     }
 
-    pub fn timeout(&self) -> Duration {
+    fn timeout(&self) -> Duration {
         Duration::new(0, 100 * 1000000)
     }
 }
