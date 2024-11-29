@@ -5,9 +5,9 @@ use vivarium_assistant::{
 };
 
 fn main() -> Result<()> {
-    let mut gpio = raspberrypi::GPIO::new()?;
-    let trig = gpio.output(&PinNumber::new(22)?)?;
-    let echo = gpio.input(&PinNumber::new(23)?)?;
+    let gpio = raspberrypi::GPIO::new()?;
+    let trig = gpio.output(&PinNumber::new(17)?)?;
+    let echo = gpio.input(&PinNumber::new(18)?)?;
 
     let mut sensor = HCSR04::new(trig, echo)?;
     let distance = sensor.measure()?;

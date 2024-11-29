@@ -10,7 +10,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use rppal::{
-    gpio::{self, Gpio},
+    gpio::{self},
     i2c,
 };
 

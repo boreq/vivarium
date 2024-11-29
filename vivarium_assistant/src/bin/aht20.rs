@@ -1,5 +1,5 @@
 use rppal::i2c::I2c;
-use vivarium_assistant::{adapters::raspberrypi::AHT20, domain::sensors, errors::Result};
+use vivarium_assistant::{adapters::raspberrypi::AHT20, errors::Result};
 
 fn main() -> Result<()> {
     let i2c = I2c::new()?;
