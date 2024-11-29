@@ -146,7 +146,7 @@ impl AHT20 {
             }
         }
 
-        thread::sleep(Duration::new(0, 40 * 1000000));
+        thread::sleep(Duration::from_millis(40));
 
         if !self.get_status()?.is_calibrated {
             // this wasn't implemented as the sensor always seems to report that it's calibrated?
@@ -156,10 +156,10 @@ impl AHT20 {
         }
 
         self.trigger_measurement()?;
-        thread::sleep(Duration::new(0, 80 * 1000000));
+        thread::sleep(Duration::from_millis(80));
 
         for _ in 0..100 {
-            thread::sleep(Duration::new(0, 1 * 1000000));
+            thread::sleep(Duration::from_millis(1));
             if !self.get_status()?.is_busy {
                 return self.read_data();
             }
@@ -176,7 +176,7 @@ impl AHT20 {
 
         // wait and then retry if we fail
         // the arduino library uses those timings
-        thread::sleep(Duration::new(0, 20 * 1000000));
+        thread::sleep(Duration::from_millis(20));
         if let Err(err) = self.send(&[]) {
             return Err(err);
         }
@@ -246,4 +246,3 @@ pub struct AHT20Measurement {
     temperature: Temperature,
     humidity: Humidity,
 }
-
