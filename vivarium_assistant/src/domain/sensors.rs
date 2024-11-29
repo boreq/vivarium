@@ -2,7 +2,6 @@ use std::{thread, time::Duration};
 
 use crate::errors::Result;
 use anyhow::anyhow;
-use chrono::NaiveTime;
 
 use super::{InputPin, OutputPin, PinNumber};
 
@@ -205,42 +204,30 @@ impl<A: OutputPin, B: InputPin> HCSR04<A, B> {
 
         let duration = end - start;
         let meters = (duration.as_micros() as f32 / 1000000.0) * 340.0 / 2.0;
-        Ok(Distance::new(meters)?)
+        Distance::new(meters)
     }
 
     fn poll_rising_edge(&mut self) -> Result<Duration> {
         match self.echo.poll_interrupt(Some(self.timeout()))? {
             Some(event) => match event.trigger {
-                super::Trigger::RisingEdge => {
-                    return Ok(event.timestamp);
-                }
-                super::Trigger::FallingEdge => {
-                    return Err(anyhow!(
-                        "detected a falling edge when a rising edge was expected"
-                    ));
-                }
+                super::Trigger::RisingEdge => Ok(event.timestamp),
+                super::Trigger::FallingEdge => Err(anyhow!(
+                    "detected a falling edge when a rising edge was expected"
+                )),
             },
-            None => {
-                return Err(anyhow!("no rising edge detected"));
-            }
+            None => Err(anyhow!("no rising edge detected")),
         }
     }
 
     fn poll_falling_edge(&mut self) -> Result<Duration> {
         match self.echo.poll_interrupt(Some(self.timeout()))? {
             Some(event) => match event.trigger {
-                super::Trigger::RisingEdge => {
-                    return Err(anyhow!(
-                        "detected a rising edge when a falling edge was expected"
-                    ));
-                }
-                super::Trigger::FallingEdge => {
-                    return Ok(event.timestamp);
-                }
+                super::Trigger::RisingEdge => Err(anyhow!(
+                    "detected a rising edge when a falling edge was expected"
+                )),
+                super::Trigger::FallingEdge => Ok(event.timestamp),
             },
-            None => {
-                return Err(anyhow!("no falling edge detected"));
-            }
+            None => Err(anyhow!("no falling edge detected")),
         }
     }
 

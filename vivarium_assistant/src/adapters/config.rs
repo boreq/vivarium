@@ -80,13 +80,13 @@ impl TryFrom<&WaterLevelSensorTransport> for WaterLevelSensor {
     type Error = Error;
 
     fn try_from(value: &WaterLevelSensorTransport) -> std::result::Result<Self, Self::Error> {
-        Ok(WaterLevelSensor::new(
+        WaterLevelSensor::new(
             SensorName::new(&value.name)?,
             PinNumber::new(value.echo_pin)?,
             PinNumber::new(value.trig_pin)?,
             Distance::new(value.min_distance)?,
             Distance::new(value.max_distance)?,
-        )?)
+        )
     }
 }
 

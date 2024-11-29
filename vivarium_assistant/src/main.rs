@@ -1,10 +1,10 @@
 use anyhow::anyhow;
-use vivarium_assistant::domain::outputs::{CurrentTimeProvider, Executor};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{env, fs, thread};
 use vivarium_assistant::adapters::{self, config, raspberrypi};
-use vivarium_assistant::domain::{OutputPin};
+use vivarium_assistant::domain::outputs::{CurrentTimeProvider, Executor};
+use vivarium_assistant::domain::OutputPin;
 use vivarium_assistant::errors::Result;
 
 const UPDATE_SENSORS_EVERY: Duration = Duration::from_secs(1);

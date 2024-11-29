@@ -170,16 +170,14 @@ impl AHT20 {
 
     // todo: this seems useless, just try reading the data?
     fn confirm_connected(&mut self) -> Result<()> {
-        if let Ok(_) = self.send(&[]) {
+        if self.send(&[]).is_ok() {
             return Ok(());
         }
 
         // wait and then retry if we fail
         // the arduino library uses those timings
         thread::sleep(Duration::from_millis(20));
-        if let Err(err) = self.send(&[]) {
-            return Err(err);
-        }
+        self.send(&[])?;
         Ok(())
     }
 
