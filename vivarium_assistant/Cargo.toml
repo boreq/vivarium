@@ -17,3 +17,7 @@ not_raspberry_pi = []
 [[bin]]
 name = "aht20"
 path = "src/bin/aht20.rs"
+
+[[bin]]
+name = "hcsr04"
+path = "src/bin/hcsr04.rs"

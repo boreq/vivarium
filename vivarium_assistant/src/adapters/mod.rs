@@ -2,6 +2,7 @@ use crate::{
     domain::{self, PinNumber},
     errors::Result,
 };
+use anyhow::anyhow;
 use chrono::Local;
 pub mod config;
 pub mod raspberrypi;
@@ -41,9 +42,13 @@ impl Default for MockGPIO {
     }
 }
 
-impl domain::GPIO<MockOutputPin> for MockGPIO {
+impl domain::GPIO<MockOutputPin, MockInputPin> for MockGPIO {
     fn output(&self, number: &PinNumber) -> Result<MockOutputPin> {
         Ok(MockOutputPin::new(number.clone()))
+    }
+
+    fn input(&self, number: &PinNumber) -> Result<MockInputPin> {
+        Ok(MockInputPin::new(number.clone()))
     }
 }
 
@@ -52,7 +57,7 @@ pub struct MockOutputPin {
 }
 
 impl MockOutputPin {
-    fn new(number: PinNumber) -> MockOutputPin {
+    fn new(number: PinNumber) -> Self {
         Self { number }
     }
 }
@@ -64,5 +69,32 @@ impl domain::OutputPin for MockOutputPin {
 
     fn set_high(&mut self) {
         println!("setting {} high", self.number.number())
+    }
+}
+
+pub struct MockInputPin {
+    number: PinNumber,
+}
+
+impl MockInputPin {
+    fn new(number: PinNumber) -> Self {
+        Self { number }
+    }
+}
+
+impl domain::InputPin for MockInputPin {
+    fn set_interrupt(&mut self) -> Result<()> {
+        Err(anyhow!("not implemented"))
+    }
+
+    fn clear_interrupt(&mut self) -> Result<()> {
+        Err(anyhow!("not implemented"))
+    }
+
+    fn poll_interrupt(
+        &mut self,
+        timeout: Option<std::time::Duration>,
+    ) -> Result<Option<domain::Event>> {
+        Err(anyhow!("not implemented"))
     }
 }

@@ -1,5 +1,7 @@
 pub mod sensors;
 
+use std::time::Duration;
+
 use crate::errors::Result;
 use anyhow::anyhow;
 use chrono::{NaiveTime, TimeDelta, Timelike};
@@ -184,13 +186,30 @@ impl Outputs {
     }
 }
 
-pub trait GPIO<A: OutputPin> {
+pub trait GPIO<A: OutputPin, B: InputPin> {
     fn output(&self, number: &PinNumber) -> Result<A>;
+    fn input(&self, number: &PinNumber) -> Result<B>;
 }
 
 pub trait OutputPin {
     fn set_low(&mut self);
     fn set_high(&mut self);
+}
+
+pub trait InputPin {
+    fn set_interrupt(&mut self) -> Result<()>;
+    fn clear_interrupt(&mut self) -> Result<()>;
+    fn poll_interrupt(&mut self, timeout: Option<Duration>) -> Result<Option<Event>>;
+}
+
+pub struct Event {
+    pub timestamp: Duration, // time since system was booted
+    pub trigger: Trigger,
+}
+
+pub enum Trigger {
+    RisingEdge,
+    FallingEdge,
 }
 
 pub trait CurrentTimeProvider {
@@ -202,18 +221,18 @@ struct OutputWithPin<A: OutputPin> {
     pin: A,
 }
 
-pub struct Executor<A: OutputPin, C: CurrentTimeProvider> {
-    outputs: Vec<OutputWithPin<A>>,
+pub struct Executor<OP: OutputPin, C: CurrentTimeProvider> {
+    outputs: Vec<OutputWithPin<OP>>,
     current_time_provider: C,
 }
 
-impl<A: OutputPin, C: CurrentTimeProvider> Executor<A, C> {
-    pub fn new<B: GPIO<A>>(
+impl<OP: OutputPin, C: CurrentTimeProvider> Executor<OP, C> {
+    pub fn new<IP: InputPin, B: GPIO<OP, IP>>(
         outputs: &Outputs,
         gpio: B,
         current_time_provider: C,
-    ) -> Result<Executor<A, C>> {
-        let outputs_with_pin: Result<Vec<OutputWithPin<A>>> = outputs
+    ) -> Result<Executor<OP, C>> {
+        let outputs_with_pin: Result<Vec<OutputWithPin<OP>>> = outputs
             .outputs()
             .iter()
             .map(|v| {
