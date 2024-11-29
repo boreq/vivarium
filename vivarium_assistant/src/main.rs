@@ -1,11 +1,16 @@
 use anyhow::anyhow;
+use vivarium_assistant::domain::outputs::{CurrentTimeProvider, Executor};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{env, fs, thread};
 use vivarium_assistant::adapters::{self, config, raspberrypi};
-use vivarium_assistant::domain::{Executor, OutputPin};
+use vivarium_assistant::domain::{OutputPin};
 use vivarium_assistant::errors::Result;
 
+const UPDATE_SENSORS_EVERY: Duration = Duration::from_secs(1);
+const UPDATE_OUTPUTS_EVERY: Duration = Duration::from_secs(1);
+
+#[tokio::main]
 async fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
@@ -37,14 +42,25 @@ async fn main() -> Result<()> {
         default_panic(info);
     }));
 
+    tokio::spawn(async { update_water_sensor_loop().await });
+
     update_outputs_loop(executor).await;
     Ok(())
 }
 
-async fn update_outputs_loop(executor: Arc<Mutex<Executor<OutputPin, _>>>) {
+async fn update_water_sensor_loop() {
+    loop {
+        println!("sensors");
+        thread::sleep(UPDATE_SENSORS_EVERY);
+    }
+}
+
+async fn update_outputs_loop<OP: OutputPin, CTP: CurrentTimeProvider>(
+    executor: Arc<Mutex<Executor<OP, CTP>>>,
+) {
     loop {
         let mut executor = executor.lock().unwrap();
         executor.update_outputs();
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(UPDATE_OUTPUTS_EVERY);
     }
 }

@@ -2,10 +2,11 @@ use std::{thread, time::Duration};
 
 use crate::errors::Result;
 use anyhow::anyhow;
+use chrono::NaiveTime;
 
-use super::{InputPin, OutputPin};
+use super::{InputPin, OutputPin, PinNumber};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Humidity {
     percentage: f32,
 }
@@ -32,7 +33,7 @@ impl Humidity {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Temperature {
     celcius: f32,
 }
@@ -59,7 +60,7 @@ impl Temperature {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Distance {
     meters: f32,
 }
@@ -83,6 +84,90 @@ impl Distance {
 
     pub fn meters(&self) -> f32 {
         self.meters
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SensorName {
+    name: String,
+}
+
+impl SensorName {
+    pub fn new(name: impl Into<String>) -> Result<Self> {
+        let name = name.into();
+        if name.is_empty() {
+            return Err(anyhow!("sensor name can't be empty"));
+        }
+        Ok(Self { name })
+    }
+}
+
+#[derive(Clone)]
+pub struct WaterLevelSensor {
+    name: SensorName,
+    echo_pin: PinNumber,
+    trig_pin: PinNumber,
+    min_distance: Distance,
+    max_distance: Distance,
+}
+
+impl WaterLevelSensor {
+    pub fn new(
+        name: SensorName,
+        echo_pin: PinNumber,
+        trig_pin: PinNumber,
+        min_distance: Distance,
+        max_distance: Distance,
+    ) -> Result<Self> {
+        if echo_pin == trig_pin {
+            return Err(anyhow!("pins must be different"));
+        }
+
+        if min_distance <= max_distance {
+            return Err(anyhow!(
+                "min water level distance must be larger than max water level distance"
+            ));
+        }
+
+        Ok(Self {
+            name,
+            echo_pin,
+            trig_pin,
+            min_distance,
+            max_distance,
+        })
+    }
+}
+
+pub struct WaterLevelSensors {
+    sensors: Vec<WaterLevelSensor>,
+}
+
+impl WaterLevelSensors {
+    pub fn new(sensors: &[WaterLevelSensor]) -> Result<Self> {
+        let mut v = vec![];
+        for (i, a) in sensors.iter().enumerate() {
+            for (j, b) in sensors.iter().enumerate() {
+                if i == j {
+                    continue;
+                }
+
+                if a.name == b.name {
+                    return Err(anyhow!("identical sensors names"));
+                }
+
+                if a.echo_pin == b.echo_pin
+                    || a.echo_pin == b.trig_pin
+                    || a.trig_pin == b.echo_pin
+                    || a.trig_pin == b.trig_pin
+                {
+                    return Err(anyhow!("duplicate pin numbers"));
+                }
+            }
+            v.push(a.clone());
+        }
+
+        Ok(Self { sensors: v })
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::{domain::Outputs, errors::Result};
+use crate::{domain::outputs::Outputs, errors::Result};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
     outputs: Outputs,

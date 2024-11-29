@@ -1,6 +1,13 @@
+use crate::domain::outputs::ScheduledActivation;
+use crate::domain::sensors::{Distance, SensorName};
+use crate::errors::Error;
 use crate::{
     config::Config,
-    domain::{Output, OutputName, Outputs, PinNumber, ScheduledActivation, ScheduledActivations},
+    domain::{
+        outputs::{Output, OutputName, Outputs, ScheduledActivations},
+        sensors::WaterLevelSensor,
+        PinNumber,
+    },
     errors::Result,
 };
 use chrono::NaiveTime;
@@ -11,17 +18,12 @@ pub fn load(config: &str) -> Result<Config> {
 
     let mut outputs_vec = vec![];
     for output in &config.outputs {
-        let mut activations_vec = vec![];
-        for activation in &output.activations {
-            let when = NaiveTime::parse_from_str(&activation.when, "%H:%M")?;
-            activations_vec.push(ScheduledActivation::new(when, activation.for_seconds)?);
-        }
+        outputs_vec.push(Output::try_from(output)?);
+    }
 
-        outputs_vec.push(Output::new(
-            OutputName::new(&output.name)?,
-            PinNumber::new(output.pin)?,
-            ScheduledActivations::new(&activations_vec)?,
-        ));
+    let mut water_level_sensors = vec![];
+    for water_level_sensor in &config.water_level_sensors {
+        water_level_sensors.push(WaterLevelSensor::try_from(water_level_sensor)?);
     }
 
     Config::new(Outputs::new(&outputs_vec)?)
@@ -30,6 +32,7 @@ pub fn load(config: &str) -> Result<Config> {
 #[derive(Deserialize)]
 struct ConfigTransport {
     outputs: Vec<OutputTransport>,
+    water_level_sensors: Vec<WaterLevelSensorTransport>,
 }
 
 #[derive(Deserialize)]
@@ -39,6 +42,24 @@ struct OutputTransport {
     activations: Vec<ScheduledActivationTransport>,
 }
 
+impl TryFrom<&OutputTransport> for Output {
+    type Error = Error;
+
+    fn try_from(value: &OutputTransport) -> std::result::Result<Self, Self::Error> {
+        let mut activations_vec = vec![];
+        for activation in &value.activations {
+            let when = NaiveTime::parse_from_str(&activation.when, "%H:%M")?;
+            activations_vec.push(ScheduledActivation::new(when, activation.for_seconds)?);
+        }
+
+        Ok(Output::new(
+            OutputName::new(&value.name)?,
+            PinNumber::new(value.pin)?,
+            ScheduledActivations::new(&activations_vec)?,
+        ))
+    }
+}
+
 #[derive(Deserialize)]
 struct ScheduledActivationTransport {
     when: String,
@@ -46,10 +67,33 @@ struct ScheduledActivationTransport {
     for_seconds: u32,
 }
 
+#[derive(Deserialize)]
+struct WaterLevelSensorTransport {
+    name: String,
+    echo_pin: u8,
+    trig_pin: u8,
+    max_distance: f32,
+    min_distance: f32,
+}
+
+impl TryFrom<&WaterLevelSensorTransport> for WaterLevelSensor {
+    type Error = Error;
+
+    fn try_from(value: &WaterLevelSensorTransport) -> std::result::Result<Self, Self::Error> {
+        Ok(WaterLevelSensor::new(
+            SensorName::new(&value.name)?,
+            PinNumber::new(value.echo_pin)?,
+            PinNumber::new(value.trig_pin)?,
+            Distance::new(value.min_distance)?,
+            Distance::new(value.max_distance)?,
+        )?)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixtures;
+    use crate::{domain::outputs::ScheduledActivation, fixtures};
     use std::fs;
 
     #[test]

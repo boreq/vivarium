@@ -25,3 +25,6 @@ fix:
 	cargo fix --allow-staged
 	cargo clippy --fix --allow-staged
 	cargo fmt
+
+push:
+	rsync --progress -r --exclude target . terrarium:~/testing

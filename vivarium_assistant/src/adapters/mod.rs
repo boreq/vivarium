@@ -1,5 +1,5 @@
 use crate::{
-    domain::{self, PinNumber},
+    domain::{self, outputs, PinNumber},
     errors::Result,
 };
 use anyhow::anyhow;
@@ -15,7 +15,7 @@ impl CurrentTimeProvider {
     }
 }
 
-impl domain::CurrentTimeProvider for CurrentTimeProvider {
+impl outputs::CurrentTimeProvider for CurrentTimeProvider {
     fn now(&self) -> chrono::NaiveTime {
         let now = Local::now();
         now.time()
@@ -93,7 +93,7 @@ impl domain::InputPin for MockInputPin {
 
     fn poll_interrupt(
         &mut self,
-        timeout: Option<std::time::Duration>,
+        _timeout: Option<std::time::Duration>,
     ) -> Result<Option<domain::Event>> {
         Err(anyhow!("not implemented"))
     }

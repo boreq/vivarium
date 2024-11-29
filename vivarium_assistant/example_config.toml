@@ -17,3 +17,10 @@ for = 600
 [[outputs.activations]]
 when = "18:30"
 for = 600
+
+[[water_level_sensors]]
+name = "Water level sensor"
+echo_pin=18
+trig_pin=17
+max_distance=5.0
+min_distance=20.0

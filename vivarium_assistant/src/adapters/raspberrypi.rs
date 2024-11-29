@@ -161,7 +161,7 @@ impl AHT20 {
         for _ in 0..100 {
             thread::sleep(Duration::new(0, 1 * 1000000));
             if !self.get_status()?.is_busy {
-                return self.readData();
+                return self.read_data();
             }
         }
 
@@ -194,7 +194,7 @@ impl AHT20 {
         Ok(())
     }
 
-    fn readData(&mut self) -> Result<AHT20Measurement> {
+    fn read_data(&mut self) -> Result<AHT20Measurement> {
         let mut buf: [u8; 6] = [0; 6];
         self.i2c.read(&mut buf)?;
 
@@ -246,3 +246,4 @@ pub struct AHT20Measurement {
     temperature: Temperature,
     humidity: Humidity,
 }
+
