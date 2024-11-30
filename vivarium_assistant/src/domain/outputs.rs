@@ -114,6 +114,10 @@ impl OutputName {
         }
         Ok(Self { name })
     }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

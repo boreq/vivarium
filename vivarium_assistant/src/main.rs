@@ -4,9 +4,7 @@ use std::time::Duration;
 use std::{env, fs, thread};
 use vivarium_assistant::adapters::{self, config, metrics, raspberrypi};
 use vivarium_assistant::config::Config;
-use vivarium_assistant::domain::outputs::{
-    CurrentTimeProvider, OutputName, OutputState, OutputStatus,
-};
+use vivarium_assistant::domain::outputs::{CurrentTimeProvider, OutputStatus};
 use vivarium_assistant::domain::{outputs, OutputPin};
 use vivarium_assistant::errors::Result;
 use vivarium_assistant::ports::http::Server;
@@ -39,12 +37,15 @@ async fn main() -> Result<()> {
         default_panic(info);
     }));
 
+    let metrics = metrics::Metrics::new()?;
     let server = Server::new();
-    let metrics = Arc::new(Mutex::new(metrics::Metrics::new()));
 
     tokio::spawn(async { update_water_sensor_loop().await });
-    tokio::spawn(async move { server_loop(&server, &config).await });
-    update_outputs_loop(executor, metrics).await;
+    tokio::spawn({
+        let metrics = metrics.clone();
+        async move { server_loop(&server, &config, metrics).await }
+    });
+    update_outputs_loop(executor, metrics.clone()).await;
     Ok(())
 }
 
@@ -58,9 +59,9 @@ fn load_config() -> Result<Config> {
     config::load(&config_string)
 }
 
-async fn server_loop(server: &Server, config: &Config) {
+async fn server_loop(server: &Server, config: &Config, metrics: metrics::Metrics) {
     loop {
-        match server.run(config).await {
+        match server.run(config, metrics.clone()).await {
             Ok(_) => {
                 print!("for some reason the server exited without returning any errors?")
             }
@@ -80,14 +81,13 @@ async fn update_water_sensor_loop() {
 
 async fn update_outputs_loop(
     controller: Arc<Mutex<dyn Controller>>,
-    metrics: Arc<Mutex<dyn Metrics>>,
+    mut metrics: metrics::Metrics,
 ) {
     loop {
         let mut controller = controller.lock().unwrap();
         controller.update_outputs();
         let status = controller.status();
 
-        let mut metrics = metrics.lock().unwrap();
         for entry in status {
             metrics.report_output(&entry.name, &entry.state);
         }
@@ -108,15 +108,5 @@ impl<OP: OutputPin, CTP: CurrentTimeProvider> Controller for outputs::Controller
 
     fn status(&mut self) -> Vec<OutputStatus> {
         self.status()
-    }
-}
-
-trait Metrics {
-    fn report_output(&mut self, output: &OutputName, state: &OutputState);
-}
-
-impl Metrics for metrics::Metrics {
-    fn report_output(&mut self, output: &OutputName, state: &OutputState) {
-        self.report_output(output, state);
     }
 }

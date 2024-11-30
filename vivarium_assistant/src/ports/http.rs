@@ -1,6 +1,11 @@
-use crate::{config, errors::Result};
+use crate::{
+    adapters::metrics::{self},
+    config,
+    errors::Result,
+};
+use axum::extract::State;
 use axum::{routing::get, Router};
-use std::sync::Arc;
+use prometheus::{Registry, TextEncoder};
 
 pub struct Server {}
 
@@ -15,24 +20,12 @@ impl Server {
         Self {}
     }
 
-    pub async fn run(&self, config: &config::Config) -> Result<()> {
-        let state = Arc::new(State::new());
+    pub async fn run(&self, config: &config::Config, metrics: metrics::Metrics) -> Result<()> {
+        let app_state = AppStateGeneric { metrics };
 
         let app = Router::new()
-            .route(
-                "/",
-                get({
-                    let state = state.clone();
-                    move || handle_index(state)
-                }),
-            )
-            .route(
-                "/metrics",
-                get({
-                    let state = state.clone();
-                    move || handle_metrics(state)
-                }),
-            );
+            .route("/metrics", get(handle_metrics::<metrics::Metrics>))
+            .with_state(app_state);
 
         let listener = tokio::net::TcpListener::bind(config.address())
             .await
@@ -42,24 +35,40 @@ impl Server {
     }
 }
 
-pub struct State {}
-
-impl Default for State {
-    fn default() -> Self {
-        Self::new()
+// no longer compiles if I use a custom error type, dunno I'm tired
+async fn handle_metrics<M>(
+    State(state): State<AppStateGeneric<M>>,
+) -> std::result::Result<String, String>
+where
+    M: Metrics,
+{
+    match handle_metrics_custom(state) {
+        Err(err) => Err(err.to_string()),
+        Ok(ok) => Ok(ok),
     }
 }
 
-impl State {
-    pub fn new() -> Self {
-        Self {}
+fn handle_metrics_custom<M>(state: AppStateGeneric<M>) -> Result<String>
+where
+    M: Metrics,
+{
+    let registry = state.metrics.registry();
+    let metrics = registry.gather();
+    let encoder = TextEncoder::new();
+    Ok(encoder.encode_to_string(&metrics)?)
+}
+
+#[derive(Clone)]
+struct AppStateGeneric<M> {
+    metrics: M,
+}
+
+pub trait Metrics {
+    fn registry(&self) -> &Registry;
+}
+
+impl Metrics for metrics::Metrics {
+    fn registry(&self) -> &Registry {
+        self.registry()
     }
-}
-
-async fn handle_index(state: Arc<State>) -> &'static str {
-    "Hello, World!"
-}
-
-async fn handle_metrics(state: Arc<State>) -> &'static str {
-    "metrics"
 }
