@@ -122,6 +122,10 @@ impl SensorName {
         }
         Ok(Self { name })
     }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -159,6 +163,26 @@ impl WaterLevelSensorDefinition {
             max_distance,
         })
     }
+
+    pub fn name(&self) -> &SensorName {
+        &self.name
+    }
+
+    pub fn echo_pin(&self) -> PinNumber {
+        self.echo_pin
+    }
+
+    pub fn trig_pin(&self) -> PinNumber {
+        self.trig_pin
+    }
+
+    pub fn min_distance(&self) -> Distance {
+        self.min_distance
+    }
+
+    pub fn max_distance(&self) -> Distance {
+        self.max_distance
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -191,6 +215,10 @@ impl WaterLevelSensorDefinitions {
         }
 
         Ok(Self { sensors: v })
+    }
+
+    pub fn sensors(&self) -> &[WaterLevelSensorDefinition] {
+        &self.sensors
     }
 }
 
@@ -242,12 +270,6 @@ impl<A: OutputPin, B: InputPin> HCSR04<A, B> {
         Ok(Self { trig, echo })
     }
 
-    pub fn measure(&mut self) -> Result<Distance> {
-        let r = self.measure_with_interrupt();
-        self.echo.clear_interrupt()?;
-        r
-    }
-
     fn measure_with_interrupt(&mut self) -> Result<Distance> {
         self.echo.set_interrupt()?;
 
@@ -297,6 +319,15 @@ impl<A: OutputPin, B: InputPin> HCSR04<A, B> {
         Duration::new(0, 100 * 1000000)
     }
 }
+
+impl<A: OutputPin, B: InputPin> DistanceSensor for HCSR04<A, B> {
+    fn measure(&mut self) -> Result<Distance> {
+        let r = self.measure_with_interrupt();
+        self.echo.clear_interrupt()?;
+        r
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

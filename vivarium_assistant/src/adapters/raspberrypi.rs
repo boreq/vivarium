@@ -14,6 +14,7 @@ use rppal::{
     i2c,
 };
 
+#[derive(Clone)]
 pub struct GPIO {
     gpio: gpio::Gpio,
 }
@@ -39,6 +40,9 @@ impl domain::GPIO<OutputPin, InputPin> for GPIO {
         Ok(InputPin::new(input_pin))
     }
 }
+
+unsafe impl Send for GPIO {}
+unsafe impl Sync for GPIO {}
 
 pub struct OutputPin {
     pin: gpio::OutputPin,

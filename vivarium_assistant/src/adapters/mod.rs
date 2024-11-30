@@ -30,6 +30,7 @@ impl Default for CurrentTimeProvider {
     }
 }
 
+#[derive(Clone)]
 pub struct MockGPIO {}
 
 impl MockGPIO {

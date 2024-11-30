@@ -5,7 +5,8 @@ use std::{env, fs, thread};
 use vivarium_assistant::adapters::{self, config, metrics, raspberrypi};
 use vivarium_assistant::config::Config;
 use vivarium_assistant::domain::outputs::{CurrentTimeProvider, OutputStatus};
-use vivarium_assistant::domain::{outputs, OutputPin};
+use vivarium_assistant::domain::GPIO;
+use vivarium_assistant::domain::{outputs, sensors, OutputPin};
 use vivarium_assistant::errors::Result;
 use vivarium_assistant::ports::http::Server;
 
@@ -22,16 +23,16 @@ async fn main() -> Result<()> {
 
     let config = load_config()?;
     let current_time_provider = adapters::CurrentTimeProvider::new();
-    let executor = Arc::new(Mutex::new(outputs::Controller::new(
+    let controller = Arc::new(Mutex::new(outputs::Controller::new(
         config.outputs(),
-        gpio,
+        gpio.clone(),
         current_time_provider,
     )?));
 
     let default_panic = std::panic::take_hook();
-    let closure_executor = executor.clone();
+    let closure_controller = controller.clone();
     std::panic::set_hook(Box::new(move |info| {
-        if let Ok(mut v) = closure_executor.lock() {
+        if let Ok(mut v) = closure_controller.lock() {
             v.fail_safe();
         }
         default_panic(info);
@@ -40,12 +41,31 @@ async fn main() -> Result<()> {
     let metrics = metrics::Metrics::new()?;
     let server = Server::new();
 
-    tokio::spawn(async { update_water_sensor_loop().await });
+    let mut water_level_sensors = vec![];
+    for definition in config.water_level_sensors().sensors() {
+        let trig = gpio.output(&definition.trig_pin())?;
+        let echo = gpio.input(&definition.echo_pin())?;
+        let sensor = sensors::HCSR04::new(trig, echo)?;
+        let sensor = sensors::WaterLevelSensor::new(
+            definition.min_distance(),
+            definition.max_distance(),
+            sensor,
+        )?;
+        water_level_sensors.push(WaterLevelSensorWithName {
+            name: definition.name().clone(),
+            sensor,
+        });
+    }
+
+    tokio::spawn({
+        let metrics = metrics.clone();
+        async move { update_water_sensors_loop(water_level_sensors, metrics).await }
+    });
     tokio::spawn({
         let metrics = metrics.clone();
         async move { server_loop(&server, &config, metrics).await }
     });
-    update_outputs_loop(executor, metrics.clone()).await;
+    update_outputs_loop(controller, metrics.clone()).await;
     Ok(())
 }
 
@@ -72,9 +92,20 @@ async fn server_loop(server: &Server, config: &Config, metrics: metrics::Metrics
     }
 }
 
-async fn update_water_sensor_loop() {
+async fn update_water_sensors_loop<T: sensors::DistanceSensor>(
+    mut sensors: Vec<WaterLevelSensorWithName<T>>,
+    mut metrics: metrics::Metrics,
+) {
+    let zero = sensors::WaterLevel::new(0.0).unwrap();
+
     loop {
-        println!("sensors");
+        for sensor in &mut sensors {
+            let level = match sensor.sensor.measure() {
+                Ok(value) => value,
+                Err(_) => zero,
+            };
+            metrics.report_water_level(&sensor.name, &level);
+        }
         thread::sleep(UPDATE_SENSORS_EVERY);
     }
 }
@@ -109,4 +140,9 @@ impl<OP: OutputPin, CTP: CurrentTimeProvider> Controller for outputs::Controller
     fn status(&mut self) -> Vec<OutputStatus> {
         self.status()
     }
+}
+
+struct WaterLevelSensorWithName<T: sensors::DistanceSensor> {
+    name: sensors::SensorName,
+    sensor: sensors::WaterLevelSensor<T>,
 }

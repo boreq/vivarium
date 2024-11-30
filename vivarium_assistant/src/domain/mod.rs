@@ -4,7 +4,7 @@ pub mod sensors;
 use crate::errors::Result;
 use std::time::Duration;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PinNumber {
     number: u8,
 }
