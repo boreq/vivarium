@@ -27,4 +27,4 @@ fix:
 	cargo fmt
 
 push:
-	rsync --progress -r --exclude target . terrarium:~/testing
+	rsync --progress -r --exclude target . terrarium:~/assistant
