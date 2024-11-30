@@ -25,6 +25,7 @@ pub fn load(config: &str) -> Result<Config> {
     }
 
     Config::new(
+        config.address,
         OutputDefinitions::new(&output_definitions)?,
         WaterLevelSensorDefinitions::new(&water_level_sensors)?,
     )
@@ -32,6 +33,7 @@ pub fn load(config: &str) -> Result<Config> {
 
 #[derive(Deserialize)]
 struct ConfigTransport {
+    address: String,
     outputs: Vec<OutputTransport>,
     water_level_sensors: Vec<WaterLevelSensorTransport>,
 }
@@ -107,6 +109,7 @@ mod tests {
         println!("{:?}", config);
 
         let expected_config = Config::new(
+            "localhost:8118",
             OutputDefinitions::new(
                 vec![
                     OutputDefinition::new(

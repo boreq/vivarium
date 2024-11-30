@@ -166,17 +166,17 @@ impl OutputDefinitions {
     }
 }
 
-pub struct Executor<OP: OutputPin, C: CurrentTimeProvider> {
+pub struct Controller<OP: OutputPin, C: CurrentTimeProvider> {
     outputs: Vec<OutputWithPin<OP>>,
     current_time_provider: C,
 }
 
-impl<OP: OutputPin, C: CurrentTimeProvider> Executor<OP, C> {
+impl<OP: OutputPin, C: CurrentTimeProvider> Controller<OP, C> {
     pub fn new<IP: InputPin, B: GPIO<OP, IP>>(
         outputs: &OutputDefinitions,
         gpio: B,
         current_time_provider: C,
-    ) -> Result<Executor<OP, C>> {
+    ) -> Result<Controller<OP, C>> {
         let outputs_with_pin: Result<Vec<OutputWithPin<OP>>> = outputs
             .outputs()
             .iter()
@@ -188,7 +188,7 @@ impl<OP: OutputPin, C: CurrentTimeProvider> Executor<OP, C> {
             })
             .collect();
 
-        Ok(Executor {
+        Ok(Controller {
             outputs: outputs_with_pin?,
             current_time_provider,
         })

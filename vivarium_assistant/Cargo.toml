@@ -10,6 +10,8 @@ chrono = "0.4.38"
 rppal = "0.19.0"
 serde = { version = "1.0.214", features = ["derive"] }
 toml = "0.8.19"
+prometheus = "0.13.4"
+axum = "0.7.9"
 
 [features]
 not_raspberry_pi = []

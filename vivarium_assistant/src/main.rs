@@ -3,9 +3,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{env, fs, thread};
 use vivarium_assistant::adapters::{self, config, raspberrypi};
-use vivarium_assistant::domain::outputs::{CurrentTimeProvider, Executor};
+use vivarium_assistant::domain::outputs::{Controller, CurrentTimeProvider};
 use vivarium_assistant::domain::OutputPin;
 use vivarium_assistant::errors::Result;
+use vivarium_assistant::ports::http::{self, Server};
 
 const UPDATE_SENSORS_EVERY: Duration = Duration::from_secs(1);
 const UPDATE_OUTPUTS_EVERY: Duration = Duration::from_secs(1);
@@ -27,7 +28,7 @@ async fn main() -> Result<()> {
     let gpio = raspberrypi::GPIO::new()?;
 
     let current_time_provider = adapters::CurrentTimeProvider::new();
-    let executor = Arc::new(Mutex::new(Executor::new(
+    let executor = Arc::new(Mutex::new(Controller::new(
         config.outputs(),
         gpio,
         current_time_provider,
@@ -42,7 +43,12 @@ async fn main() -> Result<()> {
         default_panic(info);
     }));
 
+    let server = Server::new();
+
     tokio::spawn(async { update_water_sensor_loop().await });
+    tokio::spawn(async move {
+        server.run().await;
+    });
 
     update_outputs_loop(executor).await;
     Ok(())
@@ -56,7 +62,7 @@ async fn update_water_sensor_loop() {
 }
 
 async fn update_outputs_loop<OP: OutputPin, CTP: CurrentTimeProvider>(
-    executor: Arc<Mutex<Executor<OP, CTP>>>,
+    executor: Arc<Mutex<Controller<OP, CTP>>>,
 ) {
     loop {
         let mut executor = executor.lock().unwrap();

@@ -1,11 +1,13 @@
+pub mod config;
+pub mod metrics;
+pub mod raspberrypi;
+
 use crate::{
     domain::{self, outputs, PinNumber},
     errors::Result,
 };
 use anyhow::anyhow;
 use chrono::Local;
-pub mod config;
-pub mod raspberrypi;
 
 pub struct CurrentTimeProvider {}
 

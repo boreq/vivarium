@@ -1,3 +1,5 @@
+address = "localhost:8118"
+
 [[outputs]]
 name = "Output 1"
 pin = 27
