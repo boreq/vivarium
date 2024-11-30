@@ -1,7 +1,13 @@
-use crate::domain::outputs::{OutputName, OutputState, OutputStatus};
+use crate::domain::outputs::{OutputName, OutputState};
 
 pub struct Metrics {
     registry: prometheus::Registry,
+}
+
+impl Default for Metrics {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Metrics {

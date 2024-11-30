@@ -4,6 +4,12 @@ use std::sync::Arc;
 
 pub struct Server {}
 
+impl Default for Server {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Server {
     pub fn new() -> Self {
         Self {}
@@ -37,6 +43,12 @@ impl Server {
 }
 
 pub struct State {}
+
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl State {
     pub fn new() -> Self {

@@ -9,7 +9,7 @@ use vivarium_assistant::domain::outputs::{
 };
 use vivarium_assistant::domain::{outputs, OutputPin};
 use vivarium_assistant::errors::Result;
-use vivarium_assistant::ports::http::{self, Server};
+use vivarium_assistant::ports::http::Server;
 
 const UPDATE_SENSORS_EVERY: Duration = Duration::from_secs(10);
 const UPDATE_OUTPUTS_EVERY: Duration = Duration::from_secs(1);
@@ -60,7 +60,7 @@ fn load_config() -> Result<Config> {
 
 async fn server_loop(server: &Server, config: &Config) {
     loop {
-        match server.run(&config).await {
+        match server.run(config).await {
             Ok(_) => {
                 print!("for some reason the server exited without returning any errors?")
             }
