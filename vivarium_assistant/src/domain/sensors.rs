@@ -86,6 +86,29 @@ impl Distance {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct WaterLevel {
+    percentage: f32,
+}
+
+impl WaterLevel {
+    pub fn new(percentage: f32) -> Result<Self> {
+        if !percentage.is_finite() {
+            return Err(anyhow!("WHY CAN'T YOU JUST BE NORMAL?!"));
+        }
+
+        if percentage < 0.0 {
+            return Err(anyhow!("percentage can't be negative"));
+        }
+
+        Ok(Self { percentage })
+    }
+
+    pub fn percentage(&self) -> f32 {
+        self.percentage
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SensorName {
     name: String,
@@ -171,6 +194,44 @@ impl WaterLevelSensorDefinitions {
     }
 }
 
+pub trait DistanceSensor {
+    fn measure(&mut self) -> Result<Distance>;
+}
+
+pub struct WaterLevelSensor<S: DistanceSensor> {
+    min_distance: Distance,
+    max_distance: Distance,
+    distance_sensor: S,
+}
+
+impl<S: DistanceSensor> WaterLevelSensor<S> {
+    pub fn new(min_distance: Distance, max_distance: Distance, distance_sensor: S) -> Result<Self> {
+        if min_distance <= max_distance {
+            return Err(anyhow!(
+                "min water level distance must be larger than max water level distance"
+            ));
+        }
+
+        Ok(Self {
+            min_distance,
+            max_distance,
+            distance_sensor,
+        })
+    }
+
+    pub fn measure(&mut self) -> Result<WaterLevel> {
+        let distance = self.distance_sensor.measure()?;
+
+        if distance > self.min_distance {
+            return WaterLevel::new(0.0);
+        }
+
+        let distance_from_bottom = self.min_distance.meters() - distance.meters();
+        let range = self.min_distance.meters() - self.max_distance.meters();
+        WaterLevel::new(distance_from_bottom / range)
+    }
+}
+
 pub struct HCSR04<A: OutputPin, B: InputPin> {
     trig: A,
     echo: B,
@@ -234,5 +295,98 @@ impl<A: OutputPin, B: InputPin> HCSR04<A, B> {
 
     fn timeout(&self) -> Duration {
         Duration::new(0, 100 * 1000000)
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(test)]
+    mod water_level_sensor {
+        use super::*;
+
+        struct MockDistanceSensor {
+            distance: Distance,
+        }
+
+        impl MockDistanceSensor {
+            fn new(distance: Distance) -> Self {
+                Self { distance }
+            }
+        }
+
+        impl DistanceSensor for MockDistanceSensor {
+            fn measure(&mut self) -> Result<Distance> {
+                Ok(self.distance)
+            }
+        }
+
+        #[test]
+        fn check_water_level() -> Result<()> {
+            struct TestCase<'a> {
+                name: &'a str,
+                distance: Distance,
+                water_level: WaterLevel,
+            }
+
+            let test_cases = vec![
+                TestCase {
+                    name: "min_level",
+                    distance: Distance::new(0.2)?,
+                    water_level: WaterLevel::new(0.0)?,
+                },
+                TestCase {
+                    name: "max_level",
+                    distance: Distance::new(0.1)?,
+                    water_level: WaterLevel::new(1.0)?,
+                },
+                TestCase {
+                    name: "middle",
+                    distance: Distance::new(0.15)?,
+                    water_level: WaterLevel::new(0.5)?,
+                },
+                TestCase {
+                    name: "below_min_level",
+                    distance: Distance::new(0.3)?,
+                    water_level: WaterLevel::new(0.0)?,
+                },
+                TestCase {
+                    name: "above_max_level",
+                    distance: Distance::new(0.05)?,
+                    water_level: WaterLevel::new(1.5)?,
+                },
+            ];
+
+            for test_case in &test_cases {
+                print!("test case: {}", test_case.name);
+
+                let distance_sensor = MockDistanceSensor::new(test_case.distance);
+                let mut sensor = WaterLevelSensor::new(
+                    Distance::new(0.2)?,
+                    Distance::new(0.1)?,
+                    distance_sensor,
+                )?;
+                let water_level = sensor.measure()?;
+
+                assert!(in_epsilon(
+                    test_case.water_level.percentage,
+                    water_level.percentage,
+                    0.01
+                ))
+            }
+
+            Ok(())
+        }
+
+        fn in_epsilon(a: f32, b: f32, epsilon: f32) -> bool {
+            println!("a: {} b: {} epsilon: {}", a, b, epsilon);
+
+            if a == b {
+                return true;
+            }
+
+            let actual_epsilon = (a - b).abs() / a.abs();
+            actual_epsilon < epsilon
+        }
     }
 }
