@@ -58,6 +58,14 @@ impl domain::OutputPin for OutputPin {
     fn set_high(&mut self) {
         self.pin.set_high();
     }
+
+    fn state(&self) -> domain::OutputPinState {
+        if self.pin.is_set_high() {
+            domain::OutputPinState::On
+        } else {
+            domain::OutputPinState::Off
+        }
+    }
 }
 
 pub struct InputPin {

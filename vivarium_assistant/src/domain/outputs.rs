@@ -1,4 +1,4 @@
-use super::{InputPin, OutputPin, PinNumber, GPIO};
+use super::{InputPin, OutputPin, OutputPinState, PinNumber, GPIO};
 use crate::errors::Result;
 use anyhow::anyhow;
 use chrono::NaiveTime;
@@ -209,6 +209,38 @@ impl<OP: OutputPin, C: CurrentTimeProvider> Controller<OP, C> {
     pub fn fail_safe(&mut self) {
         for output in &mut self.outputs {
             output.pin.set_low();
+        }
+    }
+
+    pub fn status(&mut self) -> Vec<OutputStatus> {
+        let mut result = vec![];
+        for output in &mut self.outputs {
+            let status = OutputStatus {
+                name: output.definition.name.clone(),
+                state: output.pin.state().into(),
+            };
+            result.push(status);
+        }
+        result
+    }
+}
+
+pub struct OutputStatus {
+    pub name: OutputName,
+    pub state: OutputState,
+}
+
+#[derive(Debug)]
+pub enum OutputState {
+    On,
+    Off,
+}
+
+impl From<OutputPinState> for OutputState {
+    fn from(value: OutputPinState) -> Self {
+        match value {
+            OutputPinState::On => Self::On,
+            OutputPinState::Off => Self::Off,
         }
     }
 }

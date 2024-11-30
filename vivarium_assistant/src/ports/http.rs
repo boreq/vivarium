@@ -1,4 +1,4 @@
-use crate::errors::Result;
+use crate::{config, errors::Result};
 use axum::{routing::get, Router};
 use std::sync::Arc;
 
@@ -9,7 +9,7 @@ impl Server {
         Self {}
     }
 
-    pub async fn run(&self) -> Result<()> {
+    pub async fn run(&self, config: &config::Config) -> Result<()> {
         let state = Arc::new(State::new());
 
         let app = Router::new()
@@ -28,7 +28,9 @@ impl Server {
                 }),
             );
 
-        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+        let listener = tokio::net::TcpListener::bind(config.address())
+            .await
+            .unwrap();
         axum::serve(listener, app).await?;
         Ok(())
     }

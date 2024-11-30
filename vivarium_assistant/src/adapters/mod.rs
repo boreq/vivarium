@@ -56,21 +56,31 @@ impl domain::GPIO<MockOutputPin, MockInputPin> for MockGPIO {
 
 pub struct MockOutputPin {
     number: PinNumber,
+    state: domain::OutputPinState,
 }
 
 impl MockOutputPin {
     fn new(number: PinNumber) -> Self {
-        Self { number }
+        Self {
+            state: domain::OutputPinState::Off,
+            number,
+        }
     }
 }
 
 impl domain::OutputPin for MockOutputPin {
     fn set_low(&mut self) {
-        println!("setting {} low", self.number.number())
+        println!("setting {} low", self.number.number());
+        self.state = domain::OutputPinState::Off;
     }
 
     fn set_high(&mut self) {
-        println!("setting {} high", self.number.number())
+        println!("setting {} high", self.number.number());
+        self.state = domain::OutputPinState::On;
+    }
+
+    fn state(&self) -> domain::OutputPinState {
+        self.state
     }
 }
 

@@ -33,6 +33,7 @@ pub trait GPIO<A: OutputPin, B: InputPin> {
 pub trait OutputPin {
     fn set_low(&mut self);
     fn set_high(&mut self);
+    fn state(&self) -> OutputPinState;
 }
 
 pub trait InputPin {
@@ -49,4 +50,10 @@ pub struct Event {
 pub enum Trigger {
     RisingEdge,
     FallingEdge,
+}
+
+#[derive(Clone, Copy)]
+pub enum OutputPinState {
+    On,
+    Off,
 }
