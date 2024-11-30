@@ -1,13 +1,11 @@
-use crate::domain::outputs::ScheduledActivation;
+use crate::domain::outputs::{
+    OutputDefinition, OutputDefinitions, OutputName, ScheduledActivation, ScheduledActivations,
+};
 use crate::domain::sensors::{Distance, SensorName, WaterLevelSensors};
 use crate::errors::Error;
 use crate::{
     config::Config,
-    domain::{
-        outputs::{Output, OutputName, Outputs, ScheduledActivations},
-        sensors::WaterLevelSensor,
-        PinNumber,
-    },
+    domain::{sensors::WaterLevelSensor, PinNumber},
     errors::Result,
 };
 use chrono::NaiveTime;
@@ -16,9 +14,9 @@ use serde::Deserialize;
 pub fn load(config: &str) -> Result<Config> {
     let config: ConfigTransport = toml::from_str(config)?;
 
-    let mut outputs = vec![];
+    let mut output_definitions = vec![];
     for output in &config.outputs {
-        outputs.push(Output::try_from(output)?);
+        output_definitions.push(OutputDefinition::try_from(output)?);
     }
 
     let mut water_level_sensors = vec![];
@@ -27,7 +25,7 @@ pub fn load(config: &str) -> Result<Config> {
     }
 
     Config::new(
-        Outputs::new(&outputs)?,
+        OutputDefinitions::new(&output_definitions)?,
         WaterLevelSensors::new(&water_level_sensors)?,
     )
 }
@@ -45,7 +43,7 @@ struct OutputTransport {
     activations: Vec<ScheduledActivationTransport>,
 }
 
-impl TryFrom<&OutputTransport> for Output {
+impl TryFrom<&OutputTransport> for OutputDefinition {
     type Error = Error;
 
     fn try_from(value: &OutputTransport) -> std::result::Result<Self, Self::Error> {
@@ -55,7 +53,7 @@ impl TryFrom<&OutputTransport> for Output {
             activations_vec.push(ScheduledActivation::new(when, activation.for_seconds)?);
         }
 
-        Ok(Output::new(
+        Ok(OutputDefinition::new(
             OutputName::new(&value.name)?,
             PinNumber::new(value.pin)?,
             ScheduledActivations::new(&activations_vec)?,
@@ -96,10 +94,7 @@ impl TryFrom<&WaterLevelSensorTransport> for WaterLevelSensor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        domain::{outputs::ScheduledActivation, sensors::WaterLevelSensors},
-        fixtures,
-    };
+    use crate::{domain::sensors::WaterLevelSensors, fixtures};
     use std::fs;
 
     #[test]
@@ -112,9 +107,9 @@ mod tests {
         println!("{:?}", config);
 
         let expected_config = Config::new(
-            Outputs::new(
+            OutputDefinitions::new(
                 vec![
-                    Output::new(
+                    OutputDefinition::new(
                         OutputName::new("Output 1")?,
                         PinNumber::new(27)?,
                         ScheduledActivations::new(
@@ -125,7 +120,7 @@ mod tests {
                             .as_ref(),
                         )?,
                     ),
-                    Output::new(
+                    OutputDefinition::new(
                         OutputName::new("Output 2")?,
                         PinNumber::new(28)?,
                         ScheduledActivations::new(

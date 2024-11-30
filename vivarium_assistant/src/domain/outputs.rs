@@ -117,13 +117,13 @@ impl OutputName {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Output {
+pub struct OutputDefinition {
     name: OutputName,
     pin: PinNumber,
     activations: ScheduledActivations,
 }
 
-impl Output {
+impl OutputDefinition {
     pub fn new(name: OutputName, pin: PinNumber, activations: ScheduledActivations) -> Self {
         Self {
             name,
@@ -134,12 +134,12 @@ impl Output {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Outputs {
-    outputs: Vec<Output>,
+pub struct OutputDefinitions {
+    outputs: Vec<OutputDefinition>,
 }
 
-impl Outputs {
-    pub fn new(outputs: &[Output]) -> Result<Self> {
+impl OutputDefinitions {
+    pub fn new(outputs: &[OutputDefinition]) -> Result<Self> {
         let mut v = vec![];
         for (i, a) in outputs.iter().enumerate() {
             for (j, b) in outputs.iter().enumerate() {
@@ -161,7 +161,7 @@ impl Outputs {
         Ok(Self { outputs: v })
     }
 
-    pub fn outputs(&self) -> &[Output] {
+    pub fn outputs(&self) -> &[OutputDefinition] {
         &self.outputs
     }
 }
@@ -173,7 +173,7 @@ pub struct Executor<OP: OutputPin, C: CurrentTimeProvider> {
 
 impl<OP: OutputPin, C: CurrentTimeProvider> Executor<OP, C> {
     pub fn new<IP: InputPin, B: GPIO<OP, IP>>(
-        outputs: &Outputs,
+        outputs: &OutputDefinitions,
         gpio: B,
         current_time_provider: C,
     ) -> Result<Executor<OP, C>> {
@@ -214,7 +214,7 @@ impl<OP: OutputPin, C: CurrentTimeProvider> Executor<OP, C> {
 }
 
 struct OutputWithPin<A: OutputPin> {
-    definition: Output,
+    definition: OutputDefinition,
     pin: A,
 }
 

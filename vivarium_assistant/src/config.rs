@@ -1,22 +1,25 @@
 use crate::{
-    domain::{outputs::Outputs, sensors::WaterLevelSensors},
+    domain::{outputs::OutputDefinitions, sensors::WaterLevelSensors},
     errors::Result,
 };
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
-    outputs: Outputs,
+    outputs: OutputDefinitions,
     water_level_sensors: WaterLevelSensors,
 }
 
 impl Config {
-    pub fn new(outputs: Outputs, water_level_sensors: WaterLevelSensors) -> Result<Config> {
+    pub fn new(
+        outputs: OutputDefinitions,
+        water_level_sensors: WaterLevelSensors,
+    ) -> Result<Config> {
         Ok(Self {
             outputs,
             water_level_sensors,
         })
     }
 
-    pub fn outputs(&self) -> &Outputs {
+    pub fn outputs(&self) -> &OutputDefinitions {
         &self.outputs
     }
 
