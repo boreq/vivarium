@@ -1,11 +1,11 @@
 use crate::domain::outputs::{
     OutputDefinition, OutputDefinitions, OutputName, ScheduledActivation, ScheduledActivations,
 };
-use crate::domain::sensors::{Distance, SensorName, WaterLevelSensors};
+use crate::domain::sensors::{Distance, SensorName, WaterLevelSensorDefinitions};
 use crate::errors::Error;
 use crate::{
     config::Config,
-    domain::{sensors::WaterLevelSensor, PinNumber},
+    domain::{sensors::WaterLevelSensorDefinition, PinNumber},
     errors::Result,
 };
 use chrono::NaiveTime;
@@ -21,12 +21,12 @@ pub fn load(config: &str) -> Result<Config> {
 
     let mut water_level_sensors = vec![];
     for water_level_sensor in &config.water_level_sensors {
-        water_level_sensors.push(WaterLevelSensor::try_from(water_level_sensor)?);
+        water_level_sensors.push(WaterLevelSensorDefinition::try_from(water_level_sensor)?);
     }
 
     Config::new(
         OutputDefinitions::new(&output_definitions)?,
-        WaterLevelSensors::new(&water_level_sensors)?,
+        WaterLevelSensorDefinitions::new(&water_level_sensors)?,
     )
 }
 
@@ -53,7 +53,7 @@ impl TryFrom<&OutputTransport> for OutputDefinition {
             activations_vec.push(ScheduledActivation::new(when, activation.for_seconds)?);
         }
 
-        Ok(OutputDefinition::new(
+        Ok(Self::new(
             OutputName::new(&value.name)?,
             PinNumber::new(value.pin)?,
             ScheduledActivations::new(&activations_vec)?,
@@ -77,11 +77,11 @@ struct WaterLevelSensorTransport {
     min_distance: f32,
 }
 
-impl TryFrom<&WaterLevelSensorTransport> for WaterLevelSensor {
+impl TryFrom<&WaterLevelSensorTransport> for WaterLevelSensorDefinition {
     type Error = Error;
 
     fn try_from(value: &WaterLevelSensorTransport) -> std::result::Result<Self, Self::Error> {
-        WaterLevelSensor::new(
+        Self::new(
             SensorName::new(&value.name)?,
             PinNumber::new(value.echo_pin)?,
             PinNumber::new(value.trig_pin)?,
@@ -94,7 +94,7 @@ impl TryFrom<&WaterLevelSensorTransport> for WaterLevelSensor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{domain::sensors::WaterLevelSensors, fixtures};
+    use crate::fixtures;
     use std::fs;
 
     #[test]
@@ -140,8 +140,8 @@ mod tests {
                 ]
                 .as_ref(),
             )?,
-            WaterLevelSensors::new(
-                vec![WaterLevelSensor::new(
+            WaterLevelSensorDefinitions::new(
+                vec![WaterLevelSensorDefinition::new(
                     SensorName::new("Water level sensor")?,
                     PinNumber::new(18)?,
                     PinNumber::new(17)?,

@@ -102,7 +102,7 @@ impl SensorName {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct WaterLevelSensor {
+pub struct WaterLevelSensorDefinition {
     name: SensorName,
     echo_pin: PinNumber,
     trig_pin: PinNumber,
@@ -110,7 +110,7 @@ pub struct WaterLevelSensor {
     max_distance: Distance,
 }
 
-impl WaterLevelSensor {
+impl WaterLevelSensorDefinition {
     pub fn new(
         name: SensorName,
         echo_pin: PinNumber,
@@ -139,12 +139,12 @@ impl WaterLevelSensor {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct WaterLevelSensors {
-    sensors: Vec<WaterLevelSensor>,
+pub struct WaterLevelSensorDefinitions {
+    sensors: Vec<WaterLevelSensorDefinition>,
 }
 
-impl WaterLevelSensors {
-    pub fn new(sensors: &[WaterLevelSensor]) -> Result<Self> {
+impl WaterLevelSensorDefinitions {
+    pub fn new(sensors: &[WaterLevelSensorDefinition]) -> Result<Self> {
         let mut v = vec![];
         for (i, a) in sensors.iter().enumerate() {
             for (j, b) in sensors.iter().enumerate() {
