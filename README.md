@@ -41,12 +41,15 @@ bottom of the tank. There is only spaghnum moss in the pots.
 See `./automation`, use `kicad`. The schematic doesn't have pulldowns on pins as
 it seems to work without them because of reasons.
 
-GPIO pins used are `{22, 23, 24, 25}` as per schematic:
-- `GPIO 22` = relay `M4` = output `?`
-- `GPIO 23` = relay `M3` = output `?`
-- `GPIO 24` = relay `M2` = output `?`
-- `GPIO 25` = relay `M1` = output `?`
+GPIO pins used for relays are:
+- `GPIO 22` = output `3`
+- `GPIO 23` = output `4`
+- `GPIO 24` = output `2`
+- `GPIO 25` = output `1`
 
+GPIO pins used for the water tank sensor are:
+- `GPIO 17` = trig
+- `GPIO 18` = echo
 
 This is `Raspberry Pi 1 Model B`.
 
