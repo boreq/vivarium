@@ -257,7 +257,7 @@ mod tests {
                 TestCase {
                     name: "midnight_end",
                     activation: ScheduledActivation::new(new_time(23, 59, 55), 10)?,
-                    time: new_time(00, 00, 05),
+                    time: new_time(00, 00, 5),
                     expected_has_inside: true,
                 },
                 TestCase {
@@ -268,26 +268,26 @@ mod tests {
                 },
                 TestCase {
                     name: "normal_start",
-                    activation: ScheduledActivation::new(new_time(12, 00, 00), 10)?,
-                    time: new_time(12, 00, 00),
+                    activation: ScheduledActivation::new(new_time(12, 0, 0), 10)?,
+                    time: new_time(12, 0, 0),
                     expected_has_inside: true,
                 },
                 TestCase {
                     name: "normal_middle",
-                    activation: ScheduledActivation::new(new_time(12, 00, 00), 10)?,
-                    time: new_time(12, 00, 05),
+                    activation: ScheduledActivation::new(new_time(12, 0, 0), 10)?,
+                    time: new_time(12, 0, 5),
                     expected_has_inside: true,
                 },
                 TestCase {
                     name: "normal_end",
-                    activation: ScheduledActivation::new(new_time(12, 00, 00), 10)?,
-                    time: new_time(12, 00, 10),
+                    activation: ScheduledActivation::new(new_time(12, 0, 0), 10)?,
+                    time: new_time(12, 0, 10),
                     expected_has_inside: true,
                 },
                 TestCase {
                     name: "normal_outside",
-                    activation: ScheduledActivation::new(new_time(12, 00, 00), 10)?,
-                    time: new_time(18, 00, 00),
+                    activation: ScheduledActivation::new(new_time(12, 0, 0), 10)?,
+                    time: new_time(18, 0, 0),
                     expected_has_inside: false,
                 },
             ];
@@ -315,26 +315,26 @@ mod tests {
             let test_cases = vec![
                 TestCase {
                     name: "identical",
-                    a: ScheduledActivation::new(new_time(14, 00, 00), 10)?,
-                    b: ScheduledActivation::new(new_time(14, 00, 00), 10)?,
+                    a: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                    b: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
                     expected_overlaps: true,
                 },
                 TestCase {
                     name: "inside",
-                    a: ScheduledActivation::new(new_time(14, 00, 00), 20)?,
-                    b: ScheduledActivation::new(new_time(14, 00, 05), 10)?,
+                    a: ScheduledActivation::new(new_time(14, 0, 0), 20)?,
+                    b: ScheduledActivation::new(new_time(14, 0, 5), 10)?,
                     expected_overlaps: true,
                 },
                 TestCase {
                     name: "overlap",
-                    a: ScheduledActivation::new(new_time(14, 00, 00), 10)?,
-                    b: ScheduledActivation::new(new_time(14, 00, 05), 10)?,
+                    a: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                    b: ScheduledActivation::new(new_time(14, 0, 5), 10)?,
                     expected_overlaps: true,
                 },
                 TestCase {
                     name: "outside",
-                    a: ScheduledActivation::new(new_time(14, 00, 00), 10)?,
-                    b: ScheduledActivation::new(new_time(18, 00, 00), 10)?,
+                    a: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                    b: ScheduledActivation::new(new_time(18, 0, 0), 10)?,
                     expected_overlaps: false,
                 },
                 TestCase {
@@ -352,13 +352,13 @@ mod tests {
                 TestCase {
                     name: "midnight_inside_after",
                     a: ScheduledActivation::new(new_time(23, 59, 50), 20)?,
-                    b: ScheduledActivation::new(new_time(00, 00, 05), 1)?,
+                    b: ScheduledActivation::new(new_time(00, 0, 5), 1)?,
                     expected_overlaps: true,
                 },
                 TestCase {
                     name: "midnight_outside",
                     a: ScheduledActivation::new(new_time(23, 59, 50), 20)?,
-                    b: ScheduledActivation::new(new_time(18, 00, 00), 10)?,
+                    b: ScheduledActivation::new(new_time(18, 0, 0), 10)?,
                     expected_overlaps: false,
                 },
             ];
@@ -403,16 +403,16 @@ mod tests {
                 TestCase {
                     name: "overlap",
                     activations: vec![
-                        ScheduledActivation::new(new_time(12, 00, 00), 10)?,
-                        ScheduledActivation::new(new_time(12, 00, 05), 10)?,
+                        ScheduledActivation::new(new_time(12, 0, 0), 10)?,
+                        ScheduledActivation::new(new_time(12, 0, 5), 10)?,
                     ],
                     expected_error: Some(anyhow!("activations can't overlap")),
                 },
                 TestCase {
                     name: "ok",
                     activations: vec![
-                        ScheduledActivation::new(new_time(12, 00, 00), 10)?,
-                        ScheduledActivation::new(new_time(18, 00, 00), 10)?,
+                        ScheduledActivation::new(new_time(12, 0, 0), 10)?,
+                        ScheduledActivation::new(new_time(18, 0, 0), 10)?,
                     ],
                     expected_error: None,
                 },
