@@ -26,5 +26,11 @@ fix:
 	cargo clippy --fix --allow-staged
 	cargo fmt
 
+.PHONY: push
 push:
-	rsync --progress -r --exclude target . terrarium:~/assistant
+	rsync --progress -r --exclude target --delete . terrarium:~/assistant
+	rsync --progress -z ./target/arm-unknown-linux-gnueabihf/debug/vivarium_assistant terrarium:~/cross-compiled
+
+.PHONY: cross-compile
+cross-compile:
+	cargo build --target=arm-unknown-linux-gnueabihf --bin=vivarium_assistant
