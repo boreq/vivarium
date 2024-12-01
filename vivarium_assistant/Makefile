@@ -28,11 +28,12 @@ fix:
 
 .PHONY: push
 push:
+	rsync --progress -z -r --exclude target --delete . terrarium:~/vivarium_assistant_repository
 	rsync --progress -z ./target/arm-unknown-linux-gnueabihf/release/vivarium_assistant terrarium:~/vivarium_assistant
 
 .PHONY: cross-compile
 cross-compile:
-	cargo build --target=arm-unknown-linux-gnueabihf --bin=vivarium_assistant --release
+	RUSTFLAGS='-C target-cpu=generic -C linker=./wrapper-arm-linux-gnueabihf.sh' cargo build --target=arm-unknown-linux-gnueabihf --bin=vivarium_assistant --release
 
 .PHONY: run
 run:
