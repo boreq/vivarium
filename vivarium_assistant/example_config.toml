@@ -20,6 +20,10 @@ for = 600
 when = "18:30"
 for = 600
 
+[[outputs]]
+name = "Output 3"
+pin = 29
+
 [[water_level_sensors]]
 name = "Water level sensor"
 echo_pin=18

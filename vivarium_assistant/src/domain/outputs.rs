@@ -74,10 +74,6 @@ pub struct ScheduledActivations {
 
 impl ScheduledActivations {
     pub fn new(activations: &[ScheduledActivation]) -> Result<Self> {
-        if activations.is_empty() {
-            return Err(anyhow!("activations can't be empty"));
-        }
-
         let mut v = vec![];
         for (i, a) in activations.iter().enumerate() {
             for (j, b) in activations.iter().enumerate() {
@@ -434,7 +430,7 @@ mod tests {
                 TestCase {
                     name: "empty",
                     activations: vec![],
-                    expected_error: Some(anyhow!("activations can't be empty")),
+                    expected_error: None,
                 },
                 TestCase {
                     name: "overlap",

@@ -1,5 +1,6 @@
 use crate::domain::outputs::{
-    OutputDefinition, OutputDefinitions, OutputName, ScheduledActivation, ScheduledActivations,
+    OutputDefinition, OutputDefinitions, OutputName, OutputState, ScheduledActivation,
+    ScheduledActivations,
 };
 use crate::domain::sensors::{Distance, SensorName, WaterLevelSensorDefinitions};
 use crate::errors::Error;
@@ -12,7 +13,7 @@ use chrono::NaiveTime;
 use serde::Deserialize;
 
 pub fn load(config: &str) -> Result<Config> {
-    let config: ConfigTransport = toml::from_str(config)?;
+    let config: SerializedConfig = toml::from_str(config)?;
 
     let mut output_definitions = vec![];
     for output in &config.outputs {
@@ -32,23 +33,24 @@ pub fn load(config: &str) -> Result<Config> {
 }
 
 #[derive(Deserialize)]
-struct ConfigTransport {
+struct SerializedConfig {
     address: String,
-    outputs: Vec<OutputTransport>,
-    water_level_sensors: Vec<WaterLevelSensorTransport>,
+    outputs: Vec<SerializedOutput>,
+    water_level_sensors: Vec<SerializedWaterLevelSensor>,
 }
 
 #[derive(Deserialize)]
-struct OutputTransport {
+struct SerializedOutput {
     name: String,
     pin: u8,
-    activations: Vec<ScheduledActivationTransport>,
+    #[serde(default)]
+    activations: Vec<SerializedScheduledActivation>,
 }
 
-impl TryFrom<&OutputTransport> for OutputDefinition {
+impl TryFrom<&SerializedOutput> for OutputDefinition {
     type Error = Error;
 
-    fn try_from(value: &OutputTransport) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: &SerializedOutput) -> std::result::Result<Self, Self::Error> {
         let mut activations_vec = vec![];
         for activation in &value.activations {
             let when = NaiveTime::parse_from_str(&activation.when, "%H:%M")?;
@@ -64,14 +66,14 @@ impl TryFrom<&OutputTransport> for OutputDefinition {
 }
 
 #[derive(Deserialize)]
-struct ScheduledActivationTransport {
+struct SerializedScheduledActivation {
     when: String,
     #[serde(rename = "for")]
     for_seconds: u32,
 }
 
 #[derive(Deserialize)]
-struct WaterLevelSensorTransport {
+struct SerializedWaterLevelSensor {
     name: String,
     echo_pin: u8,
     trig_pin: u8,
@@ -79,10 +81,10 @@ struct WaterLevelSensorTransport {
     min_distance: f32,
 }
 
-impl TryFrom<&WaterLevelSensorTransport> for WaterLevelSensorDefinition {
+impl TryFrom<&SerializedWaterLevelSensor> for WaterLevelSensorDefinition {
     type Error = Error;
 
-    fn try_from(value: &WaterLevelSensorTransport) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: &SerializedWaterLevelSensor) -> std::result::Result<Self, Self::Error> {
         Self::new(
             SensorName::new(&value.name)?,
             PinNumber::new(value.echo_pin)?,
@@ -139,6 +141,11 @@ mod tests {
                             ]
                             .as_ref(),
                         )?,
+                    ),
+                    OutputDefinition::new(
+                        OutputName::new("Output 3")?,
+                        PinNumber::new(29)?,
+                        ScheduledActivations::new(vec![].as_ref())?,
                     ),
                 ]
                 .as_ref(),
