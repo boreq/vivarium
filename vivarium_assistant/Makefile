@@ -28,9 +28,8 @@ fix:
 
 .PHONY: push
 push:
-	rsync --progress -r --exclude target --delete . terrarium:~/assistant
-	rsync --progress -z ./target/arm-unknown-linux-gnueabihf/debug/vivarium_assistant terrarium:~/cross-compiled
+	rsync --progress -z ./target/arm-unknown-linux-gnueabihf/release/vivarium_assistant terrarium:~/vivarium_assistant
 
 .PHONY: cross-compile
 cross-compile:
-	cargo build --target=arm-unknown-linux-gnueabihf --bin=vivarium_assistant
+	cargo build --target=arm-unknown-linux-gnueabihf --bin=vivarium_assistant --release
