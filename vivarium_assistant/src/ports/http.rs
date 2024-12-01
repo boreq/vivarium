@@ -27,9 +27,7 @@ impl Server {
             .route("/metrics", get(handle_metrics::<metrics::Metrics>))
             .with_state(app_state);
 
-        let listener = tokio::net::TcpListener::bind(config.address())
-            .await
-            .unwrap();
+        let listener = tokio::net::TcpListener::bind(config.address()).await?;
         axum::serve(listener, app).await?;
         Ok(())
     }
