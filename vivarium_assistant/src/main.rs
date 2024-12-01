@@ -3,7 +3,7 @@ use env_logger::Env;
 use log::{error, info};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::{env, fs, thread};
+use std::{env, fs};
 use tokio::time;
 use vivarium_assistant::adapters::{self, config, metrics, raspberrypi};
 use vivarium_assistant::config::Config;

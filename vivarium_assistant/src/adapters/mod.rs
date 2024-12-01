@@ -51,8 +51,8 @@ impl domain::GPIO<MockOutputPin, MockInputPin> for MockGPIO {
         Ok(MockOutputPin::new(*number))
     }
 
-    fn input(&self, number: &PinNumber) -> Result<MockInputPin> {
-        Ok(MockInputPin::new(*number))
+    fn input(&self, _number: &PinNumber) -> Result<MockInputPin> {
+        Ok(MockInputPin::new())
     }
 }
 
@@ -86,13 +86,11 @@ impl domain::OutputPin for MockOutputPin {
     }
 }
 
-pub struct MockInputPin {
-    number: PinNumber,
-}
+pub struct MockInputPin {}
 
 impl MockInputPin {
-    fn new(number: PinNumber) -> Self {
-        Self { number }
+    fn new() -> Self {
+        Self {}
     }
 }
 
