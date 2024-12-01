@@ -1,6 +1,5 @@
 use crate::domain::outputs::{
-    OutputDefinition, OutputDefinitions, OutputName, OutputState, ScheduledActivation,
-    ScheduledActivations,
+    OutputDefinition, OutputDefinitions, OutputName, ScheduledActivation, ScheduledActivations,
 };
 use crate::domain::sensors::{Distance, SensorName, WaterLevelSensorDefinitions};
 use crate::errors::Error;

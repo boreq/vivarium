@@ -47,11 +47,11 @@ impl Default for MockGPIO {
 
 impl domain::GPIO<MockOutputPin, MockInputPin> for MockGPIO {
     fn output(&self, number: &PinNumber) -> Result<MockOutputPin> {
-        Ok(MockOutputPin::new(number.clone()))
+        Ok(MockOutputPin::new(*number))
     }
 
     fn input(&self, number: &PinNumber) -> Result<MockInputPin> {
-        Ok(MockInputPin::new(number.clone()))
+        Ok(MockInputPin::new(*number))
     }
 }
 
