@@ -1,4 +1,4 @@
-use std::{thread, time::Duration};
+use std::{fmt::Display, thread, time::Duration};
 
 use crate::errors::Result;
 use anyhow::anyhow;
@@ -109,6 +109,12 @@ impl WaterLevel {
     }
 }
 
+impl Display for WaterLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.0}%", self.percentage * 100.0)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SensorName {
     name: String,
@@ -125,6 +131,12 @@ impl SensorName {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+}
+
+impl Display for SensorName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 

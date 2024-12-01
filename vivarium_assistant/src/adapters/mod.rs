@@ -8,6 +8,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use chrono::Local;
+use log::debug;
 
 pub struct CurrentTimeProvider {}
 
@@ -63,7 +64,7 @@ pub struct MockOutputPin {
 impl MockOutputPin {
     fn new(number: PinNumber) -> Self {
         Self {
-            state: domain::OutputPinState::Off,
+            state: domain::OutputPinState::High,
             number,
         }
     }
@@ -71,13 +72,13 @@ impl MockOutputPin {
 
 impl domain::OutputPin for MockOutputPin {
     fn set_low(&mut self) {
-        println!("setting {} low", self.number.number());
-        self.state = domain::OutputPinState::Off;
+        debug!("setting pin {:?} low", self.number);
+        self.state = domain::OutputPinState::Low;
     }
 
     fn set_high(&mut self) {
-        println!("setting {} high", self.number.number());
-        self.state = domain::OutputPinState::On;
+        debug!("setting pin {:?} high", self.number);
+        self.state = domain::OutputPinState::High;
     }
 
     fn state(&self) -> domain::OutputPinState {

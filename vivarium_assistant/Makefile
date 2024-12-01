@@ -33,3 +33,7 @@ push:
 .PHONY: cross-compile
 cross-compile:
 	cargo build --target=arm-unknown-linux-gnueabihf --bin=vivarium_assistant --release
+
+.PHONY: run
+run:
+	RUST_LOG=debug cargo run --bin vivarium_assistant --features=not_raspberry_pi example_config.toml

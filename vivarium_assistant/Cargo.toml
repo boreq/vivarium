@@ -12,6 +12,8 @@ serde = { version = "1.0.214", features = ["derive"] }
 toml = "0.8.19"
 prometheus = "0.13.4"
 axum = "0.7.9"
+log = "0.4.22"
+env_logger = "0.11.5"
 
 [features]
 not_raspberry_pi = []

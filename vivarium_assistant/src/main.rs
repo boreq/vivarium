@@ -1,8 +1,10 @@
 use anyhow::anyhow;
-use tokio::time;
+use env_logger::Env;
+use log::{error, info};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{env, fs, thread};
+use tokio::time;
 use vivarium_assistant::adapters::{self, config, metrics, raspberrypi};
 use vivarium_assistant::config::Config;
 use vivarium_assistant::domain::outputs::{CurrentTimeProvider, OutputStatus};
@@ -16,6 +18,8 @@ const UPDATE_OUTPUTS_EVERY: Duration = Duration::from_secs(1);
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
     #[cfg(feature = "not_raspberry_pi")]
     let gpio = adapters::MockGPIO::new();
 
@@ -84,10 +88,10 @@ async fn server_loop(server: &Server, config: &Config, metrics: metrics::Metrics
     loop {
         match server.run(config, metrics.clone()).await {
             Ok(_) => {
-                println!("for some reason the server exited without returning any errors?")
+                error!("for some reason the server exited without returning any errors?")
             }
             Err(err) => {
-                println!("the server exited with an error: {err}")
+                error!("the server exited with an error: {err}")
             }
         }
     }
@@ -102,8 +106,22 @@ async fn update_water_sensors_loop<T: sensors::DistanceSensor>(
     loop {
         for sensor in &mut sensors {
             let level = match sensor.sensor.measure() {
-                Ok(value) => value,
-                Err(_) => zero,
+                Ok(value) => {
+                    info!(
+                        "Water level sensor '{name}' reported water level '{level}'",
+                        name = sensor.name,
+                        level = value
+                    );
+                    value
+                }
+                Err(err) => {
+                    error!(
+                        "Water level sensor '{name}' returned an error: {err}",
+                        name = sensor.name,
+                        err = err
+                    );
+                    zero
+                }
             };
             metrics.report_water_level(&sensor.name, &level);
         }
@@ -121,18 +139,15 @@ async fn update_outputs_loop(
     }
 }
 
-fn update_outputs(
-    controller: &Arc<Mutex<dyn Controller>>,
-    metrics: &mut metrics::Metrics,
-) {
-        let mut controller = controller.lock().unwrap();
-        controller.update_outputs();
-        let status = controller.status();
-        drop(controller);
+fn update_outputs(controller: &Arc<Mutex<dyn Controller>>, metrics: &mut metrics::Metrics) {
+    let mut controller = controller.lock().unwrap();
+    controller.update_outputs();
+    let status = controller.status();
+    drop(controller);
 
-        for entry in status {
-            metrics.report_output(&entry.name, &entry.state);
-        }
+    for entry in status {
+        metrics.report_output(&entry.name, &entry.state);
+    }
 }
 
 trait Controller {

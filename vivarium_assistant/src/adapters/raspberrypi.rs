@@ -65,9 +65,9 @@ impl domain::OutputPin for OutputPin {
 
     fn state(&self) -> domain::OutputPinState {
         if self.pin.is_set_high() {
-            domain::OutputPinState::On
+            domain::OutputPinState::Low
         } else {
-            domain::OutputPinState::Off
+            domain::OutputPinState::High
         }
     }
 }

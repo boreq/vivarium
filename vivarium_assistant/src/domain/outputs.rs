@@ -1,8 +1,11 @@
+use std::fmt::Display;
+
 use super::{InputPin, OutputPin, OutputPinState, PinNumber, GPIO};
 use crate::errors::Result;
 use anyhow::anyhow;
 use chrono::NaiveTime;
 use chrono::{TimeDelta, Timelike};
+use log::info;
 
 pub trait CurrentTimeProvider {
     fn now(&self) -> NaiveTime;
@@ -116,6 +119,12 @@ impl OutputName {
     }
 }
 
+impl Display for OutputName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct OutputDefinition {
     name: OutputName,
@@ -199,8 +208,12 @@ impl<OP: OutputPin, C: CurrentTimeProvider> Controller<OP, C> {
 
         for output in &mut self.outputs {
             if output.definition.activations.has_inside(now) {
-                output.pin.set_high();
-            } else {
+                if output.pin.state() != OutputPinState::High {
+                    info!("turning on output '{name}'", name = output.definition.name);
+                    output.pin.set_high();
+                }
+            } else if output.pin.state() != OutputPinState::Low {
+                info!("turning off output '{name}'", name = output.definition.name);
                 output.pin.set_low();
             }
         }
@@ -239,8 +252,8 @@ pub enum OutputState {
 impl From<OutputPinState> for OutputState {
     fn from(value: OutputPinState) -> Self {
         match value {
-            OutputPinState::On => Self::On,
-            OutputPinState::Off => Self::Off,
+            OutputPinState::Low => Self::On,
+            OutputPinState::High => Self::Off,
         }
     }
 }
