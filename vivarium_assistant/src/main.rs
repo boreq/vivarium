@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use tokio::time;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{env, fs, thread};
@@ -83,7 +84,7 @@ async fn server_loop(server: &Server, config: &Config, metrics: metrics::Metrics
     loop {
         match server.run(config, metrics.clone()).await {
             Ok(_) => {
-                print!("for some reason the server exited without returning any errors?")
+                println!("for some reason the server exited without returning any errors?")
             }
             Err(err) => {
                 println!("the server exited with an error: {err}")
@@ -106,7 +107,7 @@ async fn update_water_sensors_loop<T: sensors::DistanceSensor>(
             };
             metrics.report_water_level(&sensor.name, &level);
         }
-        thread::sleep(UPDATE_SENSORS_EVERY);
+        time::sleep(UPDATE_SENSORS_EVERY).await;
     }
 }
 
@@ -115,16 +116,23 @@ async fn update_outputs_loop(
     mut metrics: metrics::Metrics,
 ) {
     loop {
+        update_outputs(&controller, &mut metrics);
+        time::sleep(UPDATE_OUTPUTS_EVERY).await;
+    }
+}
+
+fn update_outputs(
+    controller: &Arc<Mutex<dyn Controller>>,
+    metrics: &mut metrics::Metrics,
+) {
         let mut controller = controller.lock().unwrap();
         controller.update_outputs();
         let status = controller.status();
+        drop(controller);
 
         for entry in status {
             metrics.report_output(&entry.name, &entry.state);
         }
-
-        thread::sleep(UPDATE_OUTPUTS_EVERY);
-    }
 }
 
 trait Controller {
