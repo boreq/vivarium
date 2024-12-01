@@ -1,3 +1,4 @@
+use vivarium_assistant::domain::sensors::DistanceSensor;
 use vivarium_assistant::{
     adapters::raspberrypi,
     domain::{sensors::HCSR04, PinNumber, GPIO},
