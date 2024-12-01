@@ -284,8 +284,6 @@ impl<A: OutputPin, B: InputPin> HCSR04<A, B> {
             return Err(anyhow!("start must be smaller than end"));
         }
 
-        println!("start: {:?} end: {:?}", start, end);
-
         let duration = end - start;
         let meters = (duration.as_micros() as f32 / 1000000.0) * 340.0 / 2.0;
         Distance::new(meters)
