@@ -27,20 +27,30 @@ fix:
 	cargo fmt
 
 .PHONY: push
-push:
+push: cross-compile-debug-push cross-compile-release-push
 	#rsync --progress -z -r --exclude target --delete . terrarium:~/vivarium_assistant_repository
-	rsync --progress -z ./target/arm-unknown-linux-gnueabihf/release/vivarium_assistant terrarium:~/vivarium_assistant_cross_compile_release
-	rsync --progress -z ./target/arm-unknown-linux-gnueabihf/debug/vivarium_assistant terrarium:~/vivarium_assistant_cross_compile_debug
+
+.PHONY: cross-compile
+cross-compile: cross-compile-debug cross-compile-release
 
 RPI_RUSTFLAGS=-C target-cpu=generic -C linker=./wrapper-arm-linux-gnueabihf.sh
 RPI_TARGET=arm-unknown-linux-gnueabihf
 
-.PHONY: cross-compile
-cross-compile:
-	RUSTFLAGS='$(RPI_RUSTFLAGS)' cargo build --target=$(RPI_TARGET) --bin=vivarium_assistant
+.PHONY: cross-compile-release
+cross-compile-release:
 	RUSTFLAGS='$(RPI_RUSTFLAGS)' cargo build --target=$(RPI_TARGET) --bin=vivarium_assistant --release
-	#RUSTFLAGS='-C target-cpu=generic' rustc --print=cfg --target=arm-unknown-linux-gnueabihf 
-	#RUSTFLAGS='-C target-cpu=generic' rustc --target=arm-unknown-linux-gnueabihf -Z unstable-options --print cfg
+
+.PHONY: cross-compile-release-push
+cross-compile-release-push:
+	rsync --progress -z ./target/$(RPI_TARGET)/release/vivarium_assistant terrarium:~/vivarium_assistant_cross_compile_release
+
+.PHONY: cross-compile-debug
+cross-compile-debug:
+	RUSTFLAGS='$(RPI_RUSTFLAGS)' cargo build --target=$(RPI_TARGET) --bin=vivarium_assistant
+
+.PHONY: cross-compile-debug-push
+cross-compile-debug-push:
+	rsync --progress -z ./target/$(RPI_TARGET)/debug/vivarium_assistant terrarium:~/vivarium_assistant_cross_compile_debug
 
 .PHONY: run
 run:
