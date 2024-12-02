@@ -57,7 +57,3 @@ impl Metrics {
         &self.registry
     }
 }
-
-unsafe impl Send for Metrics {}
-
-unsafe impl Sync for Metrics {}

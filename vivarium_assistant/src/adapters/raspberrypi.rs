@@ -41,9 +41,6 @@ impl domain::GPIO<OutputPin, InputPin> for GPIO {
     }
 }
 
-unsafe impl Send for GPIO {}
-unsafe impl Sync for GPIO {}
-
 pub struct OutputPin {
     pin: gpio::OutputPin,
 }
