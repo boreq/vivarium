@@ -18,12 +18,6 @@ env_logger = "0.11.5"
 [features]
 not_raspberry_pi = []
 
-[profile.dev]
-opt-level = 0
-
-[profile.release]
-opt-level = 0 # setting a higher level results in an 'Illegal instruction' error when running the cross compiled code on Raspberry Pi
-
 [[bin]]
 name = "aht20"
 path = "src/bin/aht20.rs"

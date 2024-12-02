@@ -1,5 +1,7 @@
+MAIN_BINARY_NAME=vivarium_assistant
+
 .PHONY: ci
-ci: test-verbose clippy
+ci: test-verbose clippy build-release fix fmt check-repository-unchanged
 
 .PHONY: cleanup
 cleanup: fix clippy fmt
@@ -22,36 +24,48 @@ fmt:
 
 .PHONY: fix
 fix:
-	cargo fix --allow-staged
-	cargo clippy --fix --allow-staged
+	cargo fix --allow-staged --allow-dirty
+	cargo clippy --fix --allow-staged --allow-dirty
 	cargo fmt
 
-.PHONY: push
-push: cross-compile-debug-push cross-compile-release-push
-	#rsync --progress -z -r --exclude target --delete . terrarium:~/vivarium_assistant_repository
+.PHONY: build-release
+build-release:
+	cargo build --bin $(MAIN_BINARY_NAME) --release
+
+.PHONY: run
+run:
+	RUST_LOG=debug cargo run --bin $(MAIN_BINARY_NAME) --features=not_raspberry_pi example_config.toml
+
+.PHONY: tools
+tools:
+	cargo install cross --git https://github.com/cross-rs/cross
+
+.PHONY: check-repository-unchanged
+check-repository-unchanged:
+	./tools/check_repository_unchanged.sh
+
+CROSS_COMPILATION_RPI_RUSTFLAGS=-C target-cpu=arm1176jz-s
+CROSS_COMPILATION_RPI_TARGET=arm-unknown-linux-gnueabihf
+CROSS_COMPILATION_RPI_COMMAND=RUSTFLAGS='$(CROSS_COMPILATION_RPI_RUSTFLAGS)' CROSS_CONTAINER_ENGINE=podman cross build --target=$(CROSS_COMPILATION_RPI_TARGET) 
 
 .PHONY: cross-compile
 cross-compile: cross-compile-debug cross-compile-release
 
-RPI_RUSTFLAGS=-C target-cpu=generic -C linker=./wrapper-arm-linux-gnueabihf.sh
-RPI_TARGET=arm-unknown-linux-gnueabihf
+.PHONY: cross-compile-push
+cross-compile-push: cross-compile-debug-push cross-compile-release-push
 
 .PHONY: cross-compile-release
 cross-compile-release:
-	RUSTFLAGS='$(RPI_RUSTFLAGS)' cargo build --target=$(RPI_TARGET) --bin=vivarium_assistant --release
+	$(CROSS_COMPILATION_RPI_COMMAND) --bin=$(MAIN_BINARY_NAME) --release
 
 .PHONY: cross-compile-release-push
 cross-compile-release-push:
-	rsync --progress -z ./target/$(RPI_TARGET)/release/vivarium_assistant terrarium:~/vivarium_assistant_cross_compile_release
+	rsync --progress -z ./target/$(CROSS_COMPILATION_RPI_TARGET)/release/$(MAIN_BINARY_NAME) terrarium:~/vivarium_assistant_cross_compile_release
 
 .PHONY: cross-compile-debug
 cross-compile-debug:
-	RUSTFLAGS='$(RPI_RUSTFLAGS)' cargo build --target=$(RPI_TARGET) --bin=vivarium_assistant
+	$(CROSS_COMPILATION_RPI_COMMAND) --bin=$(MAIN_BINARY_NAME)
 
 .PHONY: cross-compile-debug-push
 cross-compile-debug-push:
-	rsync --progress -z ./target/$(RPI_TARGET)/debug/vivarium_assistant terrarium:~/vivarium_assistant_cross_compile_debug
-
-.PHONY: run
-run:
-	RUST_LOG=debug cargo run --bin vivarium_assistant --features=not_raspberry_pi example_config.toml
+	rsync --progress -z ./target/$(CROSS_COMPILATION_RPI_TARGET)/debug/$(MAIN_BINARY_NAME) terrarium:~/vivarium_assistant_cross_compile_debug
