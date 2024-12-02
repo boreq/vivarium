@@ -252,8 +252,8 @@ pub enum OutputState {
 impl From<OutputPinState> for OutputState {
     fn from(value: OutputPinState) -> Self {
         match value {
-            OutputPinState::Low => Self::On,
-            OutputPinState::High => Self::Off,
+            OutputPinState::Low => Self::Off,
+            OutputPinState::High => Self::On,
         }
     }
 }
