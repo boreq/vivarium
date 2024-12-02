@@ -256,3 +256,13 @@ pub struct AHT20Measurement {
     temperature: Temperature,
     humidity: Humidity,
 }
+
+impl AHT20Measurement {
+    pub fn temperature(&self) -> Temperature {
+        self.temperature
+    }
+
+    pub fn humidity(&self) -> Humidity {
+        self.humidity
+    }
+}
