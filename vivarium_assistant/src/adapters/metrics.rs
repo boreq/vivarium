@@ -16,7 +16,7 @@ pub struct Metrics {
 
 impl Metrics {
     pub fn new() -> Result<Self> {
-        let registry = prometheus::Registry::new();
+        let registry = prometheus::Registry::new_custom(Some("vivarium".into()), None)?;
 
         let output_gauge = GaugeVec::new(Opts::new("outputs", "state of the outputs"), &["name"])?;
         registry.register(Box::new(output_gauge.clone()))?;
