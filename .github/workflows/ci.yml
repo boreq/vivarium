@@ -21,4 +21,5 @@ jobs:
             override: true
             components: rustfmt, clippy
       - name: Check
+        working-directory: ./vivarium_assistant
         run: make ci
