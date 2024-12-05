@@ -188,6 +188,12 @@ trait WrappedController: Send {
     fn update_outputs(&mut self);
     fn status(&mut self) -> Vec<OutputStatus>;
     fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()>;
+    fn add_override(
+        &mut self,
+        output_name: outputs::OutputName,
+        state: outputs::OutputState,
+        activation: outputs::ScheduledActivation,
+    ) -> Result<()>;
     fn fail_safe(&mut self);
 }
 
@@ -210,6 +216,15 @@ where
 
     fn fail_safe(&mut self) {
         outputs::Controller::fail_safe(self)
+    }
+
+    fn add_override(
+        &mut self,
+        output_name: outputs::OutputName,
+        state: outputs::OutputState,
+        activation: outputs::ScheduledActivation,
+    ) -> Result<()> {
+        outputs::Controller::add_override(self, output_name, state, activation)
     }
 }
 
@@ -258,6 +273,16 @@ where
     fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()> {
         let mut controller = self.controller.lock().unwrap();
         (*controller).clear_overrides(output_name)
+    }
+
+    fn add_override(
+        &mut self,
+        output_name: outputs::OutputName,
+        state: outputs::OutputState,
+        activation: outputs::ScheduledActivation,
+    ) -> Result<()> {
+        let mut controller = self.controller.lock().unwrap();
+        (*controller).add_override(output_name, state, activation)
     }
 }
 

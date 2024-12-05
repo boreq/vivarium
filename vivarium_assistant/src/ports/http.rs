@@ -1,17 +1,23 @@
+use std::time::Duration;
+
 use crate::{
     adapters::metrics::{self},
     config,
-    domain::outputs::OutputName,
+    domain::outputs::{self},
     errors::{Error, Result},
 };
+use anyhow::anyhow;
 use axum::{
-    extract::State,
+    extract::{Json, Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::delete,
 };
-use axum::{routing::get, Router};
+use axum::{
+    routing::{delete, get, post},
+    Router,
+};
 use prometheus::{Registry, TextEncoder};
+use serde::Deserialize;
 
 pub struct Server {}
 
@@ -34,6 +40,7 @@ impl Server {
         let app = Router::new()
             .route("/metrics", get(handle_metrics))
             .route("/outputs/:name/overrides", delete(handle_overrides_delete))
+            .route("/outputs/:name/overrides", post(handle_overrides_post))
             .with_state(deps);
 
         let listener = tokio::net::TcpListener::bind(config.address()).await?;
@@ -55,15 +62,30 @@ where
 }
 
 async fn handle_overrides_delete<M, C>(
-    State(deps): State<Deps<M, C>>,
-) -> std::result::Result<String, AppError>
+    State(mut deps): State<Deps<M, C>>,
+    Path(name): Path<String>,
+) -> std::result::Result<(), AppError>
 where
-    M: Metrics,
+    C: Controller,
 {
-    let registry = deps.metrics.registry();
-    let metrics = registry.gather();
-    let encoder = TextEncoder::new();
-    Ok(encoder.encode_to_string(&metrics)?)
+    let name = outputs::OutputName::new(name)?;
+    Ok(deps.controller.clear_overrides(name)?)
+}
+
+async fn handle_overrides_post<M, C>(
+    State(mut deps): State<Deps<M, C>>,
+    Path(name): Path<String>,
+    Json(payload): Json<SerializedOverride>,
+) -> std::result::Result<(), AppError>
+where
+    C: Controller,
+{
+    let name = outputs::OutputName::new(name)?;
+    let state = parse_state(&payload.state)?;
+    let in_the_future = Duration::from_secs(5);
+    let when = (chrono::Local::now() + in_the_future).naive_local().time();
+    let activation = outputs::ScheduledActivation::new(when, payload.for_seconds)?;
+    Ok(deps.controller.add_override(name, state, activation)?)
 }
 
 #[derive(Clone)]
@@ -92,10 +114,16 @@ impl Metrics for metrics::Metrics {
 }
 
 pub trait Controller {
-    fn clear_overrides(&mut self, output_name: OutputName) -> Result<()>;
+    fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()>;
+    fn add_override(
+        &mut self,
+        output_name: outputs::OutputName,
+        state: outputs::OutputState,
+        activation: outputs::ScheduledActivation,
+    ) -> Result<()>;
 }
 
-struct AppError(anyhow::Error);
+struct AppError(Error);
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
@@ -113,5 +141,19 @@ where
 {
     fn from(err: E) -> Self {
         Self(err.into())
+    }
+}
+
+#[derive(Deserialize)]
+struct SerializedOverride {
+    state: String,
+    for_seconds: u32,
+}
+
+fn parse_state(s: &str) -> Result<outputs::OutputState> {
+    match s.to_uppercase().as_str() {
+        "ON" => Ok(outputs::OutputState::On),
+        "OFF" => Ok(outputs::OutputState::Off),
+        _ => Err(anyhow!("invalid state")),
     }
 }
