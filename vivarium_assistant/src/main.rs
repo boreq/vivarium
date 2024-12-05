@@ -33,14 +33,6 @@ async fn main() -> Result<()> {
         gpio.clone(),
         current_time_provider,
     )?);
-
-    //let default_panic = std::panic::take_hook();
-    //let mut closure_controller = controller.clone();
-    //std::panic::set_hook(Box::new(move |info| {
-    //    closure_controller.fail_safe();
-    //    default_panic(info);
-    //}));
-
     let metrics = metrics::Metrics::new()?;
     let server = Server::new();
 
@@ -60,6 +52,8 @@ async fn main() -> Result<()> {
         });
     }
 
+    setup_failsafe_hook(controller.clone());
+
     tokio::spawn({
         let metrics = metrics.clone();
         async move { update_water_sensors_loop(water_level_sensors, metrics).await }
@@ -71,6 +65,20 @@ async fn main() -> Result<()> {
     });
     update_outputs_loop(controller, metrics.clone()).await;
     Ok(())
+}
+
+fn setup_failsafe_hook<C>(controller: C)
+where
+    C: Controller + Sync + Send + Clone + 'static,
+{
+    std::panic::set_hook(Box::new({
+        let default_panic = std::panic::take_hook();
+        //let closure_controller = controller.clone();
+        move |info| {
+            controller.fail_safe();
+            default_panic(info);
+        }
+    }));
 }
 
 fn load_config() -> Result<Config> {
@@ -137,7 +145,7 @@ async fn update_water_sensors_loop<T, M>(
     }
 }
 
-async fn update_outputs_loop<C, M>(mut controller: C, mut metrics: M)
+async fn update_outputs_loop<C, M>(controller: C, mut metrics: M)
 where
     C: Controller,
     M: Metrics,
@@ -172,13 +180,19 @@ impl Metrics for metrics::Metrics {
 }
 
 trait Controller {
+    fn update_outputs(&self);
+    fn status(&self) -> Vec<OutputStatus>;
+    fn fail_safe(&self);
+}
+
+trait WrappedController {
     fn update_outputs(&mut self);
     fn status(&mut self) -> Vec<OutputStatus>;
     fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()>;
     fn fail_safe(&mut self);
 }
 
-impl<OP, CTP> Controller for outputs::Controller<OP, CTP>
+impl<OP, CTP> WrappedController for outputs::Controller<OP, CTP>
 where
     OP: domain::OutputPin,
     CTP: outputs::CurrentTimeProvider,
@@ -202,14 +216,14 @@ where
 
 struct SafeController<T>
 where
-    T: Controller,
+    T: WrappedController + Send,
 {
     controller: Arc<Mutex<T>>,
 }
 
 impl<T> SafeController<T>
 where
-    T: Controller + Send,
+    T: WrappedController + Send,
 {
     fn new(controller: T) -> Self {
         Self {
@@ -220,24 +234,19 @@ where
 
 impl<T> Controller for SafeController<T>
 where
-    T: Controller + Send,
+    T: WrappedController + Send,
 {
-    fn update_outputs(&mut self) {
+    fn update_outputs(&self) {
         let mut controller = self.controller.lock().unwrap();
         (*controller).update_outputs();
     }
 
-    fn status(&mut self) -> Vec<OutputStatus> {
+    fn status(&self) -> Vec<OutputStatus> {
         let mut controller = self.controller.lock().unwrap();
         (*controller).status()
     }
 
-    fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()> {
-        let mut controller = self.controller.lock().unwrap();
-        (*controller).clear_overrides(output_name)
-    }
-
-    fn fail_safe(&mut self) {
+    fn fail_safe(&self) {
         let mut controller = self.controller.lock().unwrap();
         (*controller).fail_safe()
     }
@@ -245,7 +254,7 @@ where
 
 impl<T> http::Controller for SafeController<T>
 where
-    T: Controller,
+    T: WrappedController + Send,
 {
     fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()> {
         let mut controller = self.controller.lock().unwrap();
@@ -255,7 +264,7 @@ where
 
 impl<T> Clone for SafeController<T>
 where
-    T: Controller + Send,
+    T: WrappedController + Send,
 {
     fn clone(&self) -> Self {
         Self {
