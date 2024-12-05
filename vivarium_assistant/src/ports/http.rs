@@ -1,9 +1,13 @@
 use crate::{
     adapters::metrics::{self},
     config,
-    errors::Result,
+    errors::{Error, Result},
 };
-use axum::extract::State;
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use axum::{routing::get, Router};
 use prometheus::{Registry, TextEncoder};
 
@@ -33,20 +37,9 @@ impl Server {
     }
 }
 
-// no longer compiles if I use a custom error type, dunno I'm tired
 async fn handle_metrics<M>(
     State(state): State<AppStateGeneric<M>>,
-) -> std::result::Result<String, String>
-where
-    M: Metrics,
-{
-    match handle_metrics_custom(state) {
-        Err(err) => Err(err.to_string()),
-        Ok(ok) => Ok(ok),
-    }
-}
-
-fn handle_metrics_custom<M>(state: AppStateGeneric<M>) -> Result<String>
+) -> std::result::Result<String, AppError>
 where
     M: Metrics,
 {
@@ -68,5 +61,26 @@ pub trait Metrics {
 impl Metrics for metrics::Metrics {
     fn registry(&self) -> &Registry {
         self.registry()
+    }
+}
+
+struct AppError(anyhow::Error);
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Something went wrong: {}", self.0),
+        )
+            .into_response()
+    }
+}
+
+impl<E> From<E> for AppError
+where
+    E: Into<Error>,
+{
+    fn from(err: E) -> Self {
+        Self(err.into())
     }
 }
