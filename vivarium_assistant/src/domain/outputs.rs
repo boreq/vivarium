@@ -249,6 +249,17 @@ impl<OP: OutputPin, CTP: CurrentTimeProvider> Controller<OP, CTP> {
         Err(anyhow!("output {:?} doesn't exist", output_name))
     }
 
+    pub fn clear_overrides(&mut self, output_name: OutputName) -> Result<()> {
+        for output in &mut self.outputs {
+            if output.definition.name == output_name {
+                output.overrides.clear();
+                return Ok(());
+            }
+        }
+
+        Err(anyhow!("output {:?} doesn't exist", output_name))
+    }
+
     pub fn fail_safe(&mut self) {
         for output in &mut self.outputs {
             output.pin.set_low();
