@@ -69,11 +69,10 @@ async fn main() -> Result<()> {
 
 fn setup_failsafe_hook<C>(controller: C)
 where
-    C: Controller + Sync + Send + Clone + 'static,
+    C: Controller + 'static,
 {
     std::panic::set_hook(Box::new({
         let default_panic = std::panic::take_hook();
-        //let closure_controller = controller.clone();
         move |info| {
             controller.fail_safe();
             default_panic(info);
@@ -179,13 +178,13 @@ impl Metrics for metrics::Metrics {
     }
 }
 
-trait Controller {
+trait Controller: Send + Sync {
     fn update_outputs(&self);
     fn status(&self) -> Vec<OutputStatus>;
     fn fail_safe(&self);
 }
 
-trait WrappedController {
+trait WrappedController: Send {
     fn update_outputs(&mut self);
     fn status(&mut self) -> Vec<OutputStatus>;
     fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()>;
@@ -194,8 +193,8 @@ trait WrappedController {
 
 impl<OP, CTP> WrappedController for outputs::Controller<OP, CTP>
 where
-    OP: domain::OutputPin,
-    CTP: outputs::CurrentTimeProvider,
+    OP: domain::OutputPin + Send,
+    CTP: outputs::CurrentTimeProvider + Send,
 {
     fn update_outputs(&mut self) {
         outputs::Controller::update_outputs(self);
@@ -216,14 +215,14 @@ where
 
 struct SafeController<T>
 where
-    T: WrappedController + Send,
+    T: WrappedController,
 {
     controller: Arc<Mutex<T>>,
 }
 
 impl<T> SafeController<T>
 where
-    T: WrappedController + Send,
+    T: WrappedController,
 {
     fn new(controller: T) -> Self {
         Self {
@@ -234,7 +233,7 @@ where
 
 impl<T> Controller for SafeController<T>
 where
-    T: WrappedController + Send,
+    T: WrappedController,
 {
     fn update_outputs(&self) {
         let mut controller = self.controller.lock().unwrap();
@@ -254,7 +253,7 @@ where
 
 impl<T> http::Controller for SafeController<T>
 where
-    T: WrappedController + Send,
+    T: WrappedController,
 {
     fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()> {
         let mut controller = self.controller.lock().unwrap();
@@ -264,7 +263,7 @@ where
 
 impl<T> Clone for SafeController<T>
 where
-    T: WrappedController + Send,
+    T: WrappedController,
 {
     fn clone(&self) -> Self {
         Self {
