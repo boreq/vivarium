@@ -62,7 +62,7 @@ pub struct MockOutputPin {
 }
 
 impl MockOutputPin {
-    fn new(number: PinNumber) -> Self {
+    pub fn new(number: PinNumber) -> Self {
         Self {
             state: domain::OutputPinState::High,
             number,
@@ -89,8 +89,14 @@ impl domain::OutputPin for MockOutputPin {
 pub struct MockInputPin {}
 
 impl MockInputPin {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
+    }
+}
+
+impl Default for MockInputPin {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

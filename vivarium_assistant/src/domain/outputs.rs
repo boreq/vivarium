@@ -1,11 +1,10 @@
-use std::fmt::Display;
-
 use super::{InputPin, OutputPin, OutputPinState, PinNumber, GPIO};
 use crate::errors::Result;
 use anyhow::anyhow;
 use chrono::NaiveTime;
 use chrono::{TimeDelta, Timelike};
 use log::info;
+use std::fmt::Display;
 
 pub trait CurrentTimeProvider {
     fn now(&self) -> NaiveTime;
@@ -90,9 +89,9 @@ impl ScheduledActivations {
         Ok(ScheduledActivations { activations: v })
     }
 
-    pub fn has_inside(&self, time: NaiveTime) -> bool {
+    pub fn has_inside(&self, time: &NaiveTime) -> bool {
         for activation in &self.activations {
-            if activation.has_inside(&time) {
+            if activation.has_inside(time) {
                 return true;
             }
         }
@@ -100,7 +99,7 @@ impl ScheduledActivations {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct OutputName {
     name: String,
 }
@@ -175,23 +174,24 @@ impl OutputDefinitions {
     }
 }
 
-pub struct Controller<OP: OutputPin, C: CurrentTimeProvider> {
-    outputs: Vec<OutputWithPin<OP>>,
-    current_time_provider: C,
+pub struct Controller<OP: OutputPin, CTP: CurrentTimeProvider> {
+    outputs: Vec<ControlledOutput<OP>>,
+    current_time_provider: CTP,
 }
 
-impl<OP: OutputPin, C: CurrentTimeProvider> Controller<OP, C> {
-    pub fn new<IP: InputPin, B: GPIO<OP, IP>>(
+impl<OP: OutputPin, CTP: CurrentTimeProvider> Controller<OP, CTP> {
+    pub fn new<IP: InputPin, GP: GPIO<OP, IP>>(
         outputs: &OutputDefinitions,
-        gpio: B,
-        current_time_provider: C,
-    ) -> Result<Controller<OP, C>> {
-        let outputs_with_pin: Result<Vec<OutputWithPin<OP>>> = outputs
+        gpio: GP,
+        current_time_provider: CTP,
+    ) -> Result<Controller<OP, CTP>> {
+        let outputs_with_pin: Result<Vec<ControlledOutput<OP>>> = outputs
             .outputs()
             .iter()
             .map(|v| {
-                Ok(OutputWithPin {
+                Ok(ControlledOutput {
                     definition: v.clone(),
+                    overrides: vec![],
                     pin: gpio.output(&v.pin)?,
                 })
             })
@@ -207,16 +207,46 @@ impl<OP: OutputPin, C: CurrentTimeProvider> Controller<OP, C> {
         let now = self.current_time_provider.now();
 
         for output in &mut self.outputs {
-            if output.definition.activations.has_inside(now) {
-                if output.pin.state() != OutputPinState::High {
-                    info!("turning on output '{name}'", name = output.definition.name);
-                    output.pin.set_high();
+            match output.target_state(&now) {
+                OutputState::On => {
+                    if output.pin.state() != OutputPinState::High {
+                        info!("turning on output '{name}'", name = output.definition.name);
+                        output.pin.set_high();
+                    }
                 }
-            } else if output.pin.state() != OutputPinState::Low {
-                info!("turning off output '{name}'", name = output.definition.name);
-                output.pin.set_low();
+                OutputState::Off => {
+                    if output.pin.state() != OutputPinState::Low {
+                        info!("turning off output '{name}'", name = output.definition.name);
+                        output.pin.set_low();
+                    }
+                }
+            }
+
+            output.cleanup_overrides(&now);
+        }
+    }
+
+    pub fn add_override(
+        &mut self,
+        output_name: OutputName,
+        state: OutputState,
+        activation: ScheduledActivation,
+    ) -> Result<()> {
+        for output in &mut self.outputs {
+            if output.definition.name == output_name {
+                info!(
+                    "adding override to state {state} for output '{name}' starting at {when} and lasting {for_seconds} seconds",
+                    state = state,
+                    name = output_name,
+                    when  = activation.when,
+                    for_seconds =activation.for_seconds
+                );
+                output.overrides.push(Override::new(state, activation));
+                return Ok(());
             }
         }
+
+        Err(anyhow!("output {:?} doesn't exist", output_name))
     }
 
     pub fn fail_safe(&mut self) {
@@ -225,9 +255,9 @@ impl<OP: OutputPin, C: CurrentTimeProvider> Controller<OP, C> {
         }
     }
 
-    pub fn status(&mut self) -> Vec<OutputStatus> {
+    pub fn status(&self) -> Vec<OutputStatus> {
         let mut result = vec![];
-        for output in &mut self.outputs {
+        for output in &self.outputs {
             let status = OutputStatus {
                 name: output.definition.name.clone(),
                 state: output.pin.state().into(),
@@ -243,7 +273,7 @@ pub struct OutputStatus {
     pub state: OutputState,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutputState {
     On,
     Off,
@@ -258,9 +288,58 @@ impl From<OutputPinState> for OutputState {
     }
 }
 
-struct OutputWithPin<A: OutputPin> {
+impl Display for OutputState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OutputState::On => write!(f, "on"),
+            OutputState::Off => write!(f, "off"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct Override {
+    state: OutputState,
+    activation: ScheduledActivation,
+    was_triggered: bool,
+}
+
+impl Override {
+    fn new(state: OutputState, activation: ScheduledActivation) -> Self {
+        Self {
+            state,
+            activation,
+            was_triggered: false,
+        }
+    }
+}
+
+struct ControlledOutput<OP: OutputPin> {
     definition: OutputDefinition,
-    pin: A,
+    pin: OP,
+    overrides: Vec<Override>,
+}
+
+impl<OP: OutputPin> ControlledOutput<OP> {
+    fn target_state(&mut self, now: &NaiveTime) -> OutputState {
+        for o in &mut self.overrides {
+            if o.activation.has_inside(now) {
+                o.was_triggered = true;
+                return o.state;
+            }
+        }
+
+        if self.definition.activations.has_inside(now) {
+            OutputState::On
+        } else {
+            OutputState::Off
+        }
+    }
+
+    fn cleanup_overrides(&mut self, now: &NaiveTime) {
+        self.overrides
+            .retain(|v| v.activation.has_inside(now) || !v.was_triggered);
+    }
 }
 
 #[cfg(test)]
@@ -338,7 +417,7 @@ mod tests {
             ];
 
             for test_case in &test_cases {
-                print!("test case: {}", test_case.name);
+                println!("test case: {}", test_case.name);
                 assert_eq!(
                     test_case.activation.has_inside(&test_case.time),
                     test_case.expected_has_inside
@@ -409,7 +488,7 @@ mod tests {
             ];
 
             for test_case in &test_cases {
-                print!("test case: {}", test_case.name);
+                println!("test case: {}", test_case.name);
 
                 assert_eq!(
                     test_case.a.overlaps(&test_case.b),
@@ -464,7 +543,7 @@ mod tests {
             ];
 
             for test_case in &test_cases {
-                print!("test case: {}", test_case.name);
+                println!("test case: {}", test_case.name);
 
                 let result = ScheduledActivations::new(&test_case.activations);
                 match &test_case.expected_error {
@@ -487,6 +566,166 @@ mod tests {
                         }
                     }
                 }
+            }
+
+            Ok(())
+        }
+    }
+
+    mod controlled_output {
+        use super::*;
+        use crate::adapters::MockOutputPin;
+
+        #[test]
+        fn test_target_state() -> Result<()> {
+            struct TestCase<'a> {
+                name: &'a str,
+                activations: Vec<ScheduledActivation>,
+                overrides: Vec<Override>,
+                expected_state: OutputState,
+            }
+
+            let time = new_time(12, 00, 00);
+            let test_cases = vec![
+                TestCase {
+                    name: "empty",
+                    activations: vec![],
+                    overrides: vec![],
+                    expected_state: OutputState::Off,
+                },
+                TestCase {
+                    name: "no_override",
+                    activations: vec![ScheduledActivation::new(new_time(11, 59, 55), 10)?],
+                    overrides: vec![],
+                    expected_state: OutputState::On,
+                },
+                TestCase {
+                    name: "override_off",
+                    activations: vec![ScheduledActivation::new(new_time(11, 59, 55), 10)?],
+                    overrides: vec![Override::new(
+                        OutputState::Off,
+                        ScheduledActivation::new(new_time(11, 59, 55), 10)?,
+                    )],
+                    expected_state: OutputState::Off,
+                },
+                TestCase {
+                    name: "override_on",
+                    activations: vec![ScheduledActivation::new(new_time(18, 00, 00), 10)?],
+                    overrides: vec![Override::new(
+                        OutputState::On,
+                        ScheduledActivation::new(new_time(11, 59, 55), 10)?,
+                    )],
+                    expected_state: OutputState::On,
+                },
+            ];
+
+            for test_case in &test_cases {
+                println!("test case: {}", test_case.name);
+
+                let pin_number = PinNumber::new(1)?;
+                let activations = ScheduledActivations::new(&test_case.activations)?;
+                let definition =
+                    OutputDefinition::new(OutputName::new("output")?, pin_number, activations);
+                let mut output = ControlledOutput {
+                    definition,
+                    pin: MockOutputPin::new(pin_number),
+                    overrides: test_case.overrides.clone(),
+                };
+
+                let result = output.target_state(&time);
+                assert_eq!(result, test_case.expected_state);
+            }
+
+            Ok(())
+        }
+
+        #[test]
+        fn test_cleanup_overrides() -> Result<()> {
+            struct TestCase<'a> {
+                name: &'a str,
+                overrides: Vec<Override>,
+                expected_overrides: Vec<Override>,
+            }
+
+            let time = new_time(12, 00, 00);
+            let test_cases = vec![
+                TestCase {
+                    name: "future_override",
+                    overrides: vec![Override {
+                        state: OutputState::On,
+                        activation: ScheduledActivation::new(new_time(18, 00, 00), 10)?,
+                        was_triggered: false,
+                    }],
+                    expected_overrides: vec![Override {
+                        state: OutputState::On,
+                        activation: ScheduledActivation::new(new_time(18, 00, 00), 10)?,
+                        was_triggered: false,
+                    }],
+                },
+                TestCase {
+                    name: "past_override",
+                    overrides: vec![
+                        Override {
+                            state: OutputState::On,
+                            activation: ScheduledActivation::new(new_time(18, 00, 00), 10)?,
+                            was_triggered: false,
+                        },
+                        Override {
+                            state: OutputState::On,
+                            activation: ScheduledActivation::new(new_time(6, 00, 00), 10)?,
+                            was_triggered: true,
+                        },
+                    ],
+                    expected_overrides: vec![Override {
+                        state: OutputState::On,
+                        activation: ScheduledActivation::new(new_time(18, 00, 00), 10)?,
+                        was_triggered: false,
+                    }],
+                },
+                TestCase {
+                    name: "current_override",
+                    overrides: vec![
+                        Override {
+                            state: OutputState::On,
+                            activation: ScheduledActivation::new(new_time(18, 00, 00), 10)?,
+                            was_triggered: false,
+                        },
+                        Override {
+                            state: OutputState::On,
+                            activation: ScheduledActivation::new(new_time(11, 59, 55), 10)?,
+                            was_triggered: true,
+                        },
+                    ],
+                    expected_overrides: vec![
+                        Override {
+                            state: OutputState::On,
+                            activation: ScheduledActivation::new(new_time(18, 00, 00), 10)?,
+                            was_triggered: false,
+                        },
+                        Override {
+                            state: OutputState::On,
+                            activation: ScheduledActivation::new(new_time(11, 59, 55), 10)?,
+                            was_triggered: true,
+                        },
+                    ],
+                },
+            ];
+
+            for test_case in &test_cases {
+                println!("test case: {}", test_case.name);
+
+                let pin_number = PinNumber::new(1)?;
+                let activations = ScheduledActivations::new(&[])?;
+                let definition =
+                    OutputDefinition::new(OutputName::new("output")?, pin_number, activations);
+                let mut output = ControlledOutput {
+                    definition,
+                    pin: MockOutputPin::new(pin_number),
+                    overrides: test_case.overrides.clone(),
+                };
+
+                output.cleanup_overrides(&time);
+                assert_eq!(output.overrides, test_case.expected_overrides);
             }
 
             Ok(())

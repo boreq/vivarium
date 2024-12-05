@@ -150,6 +150,7 @@ fn update_outputs(controller: &Arc<Mutex<dyn Controller>>, metrics: &mut metrics
     }
 }
 
+// so that we don't need to write the <generics> all over this file
 trait Controller {
     fn update_outputs(&mut self);
     fn status(&mut self) -> Vec<OutputStatus>;
@@ -157,11 +158,11 @@ trait Controller {
 
 impl<OP: OutputPin, CTP: CurrentTimeProvider> Controller for outputs::Controller<OP, CTP> {
     fn update_outputs(&mut self) {
-        self.update_outputs();
+        outputs::Controller::update_outputs(self)
     }
 
     fn status(&mut self) -> Vec<OutputStatus> {
-        self.status()
+        outputs::Controller::status(self)
     }
 }
 
