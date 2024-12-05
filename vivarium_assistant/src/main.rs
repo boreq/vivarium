@@ -7,11 +7,11 @@ use std::{env, fs};
 use tokio::time;
 use vivarium_assistant::adapters::{self, config, metrics, raspberrypi};
 use vivarium_assistant::config::Config;
-use vivarium_assistant::domain::outputs::{CurrentTimeProvider, OutputStatus};
-use vivarium_assistant::domain::GPIO;
-use vivarium_assistant::domain::{outputs, sensors, OutputPin};
+use vivarium_assistant::domain::outputs::OutputStatus;
+use vivarium_assistant::domain::{self, GPIO};
+use vivarium_assistant::domain::{outputs, sensors};
 use vivarium_assistant::errors::Result;
-use vivarium_assistant::ports::http::Server;
+use vivarium_assistant::ports::http::{self, Server};
 
 const UPDATE_SENSORS_EVERY: Duration = Duration::from_secs(10);
 const UPDATE_OUTPUTS_EVERY: Duration = Duration::from_secs(1);
@@ -28,20 +28,18 @@ async fn main() -> Result<()> {
 
     let config = load_config()?;
     let current_time_provider = adapters::CurrentTimeProvider::new();
-    let controller = Arc::new(Mutex::new(outputs::Controller::new(
+    let controller = SafeController::new(outputs::Controller::new(
         config.outputs(),
         gpio.clone(),
         current_time_provider,
-    )?));
+    )?);
 
-    let default_panic = std::panic::take_hook();
-    let closure_controller = controller.clone();
-    std::panic::set_hook(Box::new(move |info| {
-        if let Ok(mut v) = closure_controller.lock() {
-            v.fail_safe();
-        }
-        default_panic(info);
-    }));
+    //let default_panic = std::panic::take_hook();
+    //let mut closure_controller = controller.clone();
+    //std::panic::set_hook(Box::new(move |info| {
+    //    closure_controller.fail_safe();
+    //    default_panic(info);
+    //}));
 
     let metrics = metrics::Metrics::new()?;
     let server = Server::new();
@@ -68,7 +66,8 @@ async fn main() -> Result<()> {
     });
     tokio::spawn({
         let metrics = metrics.clone();
-        async move { server_loop(&server, &config, metrics).await }
+        let controller = controller.clone();
+        async move { server_loop(&server, &config, metrics, controller).await }
     });
     update_outputs_loop(controller, metrics.clone()).await;
     Ok(())
@@ -84,9 +83,15 @@ fn load_config() -> Result<Config> {
     config::load(&config_string)
 }
 
-async fn server_loop(server: &Server, config: &Config, metrics: metrics::Metrics) {
+async fn server_loop<M, C>(server: &Server, config: &Config, metrics: M, controller: C)
+where
+    M: http::Metrics + Sync + Send + Clone + 'static,
+    C: http::Controller + Sync + Send + Clone + 'static,
+{
+    let deps = http::Deps::new(metrics, controller);
+
     loop {
-        match server.run(config, metrics.clone()).await {
+        match server.run(config, deps.clone()).await {
             Ok(_) => {
                 error!("for some reason the server exited without returning any errors?")
             }
@@ -97,10 +102,13 @@ async fn server_loop(server: &Server, config: &Config, metrics: metrics::Metrics
     }
 }
 
-async fn update_water_sensors_loop<T: sensors::DistanceSensor>(
+async fn update_water_sensors_loop<T, M>(
     mut sensors: Vec<WaterLevelSensorWithName<T>>,
-    mut metrics: metrics::Metrics,
-) {
+    mut metrics: M,
+) where
+    T: sensors::DistanceSensor,
+    M: Metrics,
+{
     let zero = sensors::WaterLevel::new(0.0).unwrap();
 
     loop {
@@ -129,44 +137,129 @@ async fn update_water_sensors_loop<T: sensors::DistanceSensor>(
     }
 }
 
-async fn update_outputs_loop(
-    controller: Arc<Mutex<dyn Controller>>,
-    mut metrics: metrics::Metrics,
-) {
+async fn update_outputs_loop<C, M>(mut controller: C, mut metrics: M)
+where
+    C: Controller,
+    M: Metrics,
+{
     loop {
-        update_outputs(&controller, &mut metrics);
+        controller.update_outputs();
+        for entry in controller.status() {
+            metrics.report_output(&entry.name, &entry.state);
+        }
         time::sleep(UPDATE_OUTPUTS_EVERY).await;
-    }
-}
-
-fn update_outputs(controller: &Arc<Mutex<dyn Controller>>, metrics: &mut metrics::Metrics) {
-    let mut controller = controller.lock().unwrap();
-    controller.update_outputs();
-    let status = controller.status();
-    drop(controller);
-
-    for entry in status {
-        metrics.report_output(&entry.name, &entry.state);
-    }
-}
-
-// so that we don't need to write the <generics> all over this file
-trait Controller {
-    fn update_outputs(&mut self);
-    fn status(&mut self) -> Vec<OutputStatus>;
-}
-
-impl<OP: OutputPin, CTP: CurrentTimeProvider> Controller for outputs::Controller<OP, CTP> {
-    fn update_outputs(&mut self) {
-        outputs::Controller::update_outputs(self)
-    }
-
-    fn status(&mut self) -> Vec<OutputStatus> {
-        outputs::Controller::status(self)
     }
 }
 
 struct WaterLevelSensorWithName<T: sensors::DistanceSensor> {
     name: sensors::SensorName,
     sensor: sensors::WaterLevelSensor<T>,
+}
+
+trait Metrics {
+    fn report_output(&mut self, output: &outputs::OutputName, state: &outputs::OutputState);
+    fn report_water_level(&mut self, sensor: &sensors::SensorName, level: &sensors::WaterLevel);
+}
+
+impl Metrics for metrics::Metrics {
+    fn report_output(&mut self, output: &outputs::OutputName, state: &outputs::OutputState) {
+        metrics::Metrics::report_output(self, output, state);
+    }
+
+    fn report_water_level(&mut self, sensor: &sensors::SensorName, level: &sensors::WaterLevel) {
+        metrics::Metrics::report_water_level(self, sensor, level);
+    }
+}
+
+trait Controller {
+    fn update_outputs(&mut self);
+    fn status(&mut self) -> Vec<OutputStatus>;
+    fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()>;
+    fn fail_safe(&mut self);
+}
+
+impl<OP, CTP> Controller for outputs::Controller<OP, CTP>
+where
+    OP: domain::OutputPin,
+    CTP: outputs::CurrentTimeProvider,
+{
+    fn update_outputs(&mut self) {
+        outputs::Controller::update_outputs(self);
+    }
+
+    fn status(&mut self) -> Vec<OutputStatus> {
+        outputs::Controller::status(self)
+    }
+
+    fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()> {
+        outputs::Controller::clear_overrides(self, output_name)
+    }
+
+    fn fail_safe(&mut self) {
+        outputs::Controller::fail_safe(self)
+    }
+}
+
+struct SafeController<T>
+where
+    T: Controller,
+{
+    controller: Arc<Mutex<T>>,
+}
+
+impl<T> SafeController<T>
+where
+    T: Controller + Send,
+{
+    fn new(controller: T) -> Self {
+        Self {
+            controller: Arc::new(Mutex::new(controller)),
+        }
+    }
+}
+
+impl<T> Controller for SafeController<T>
+where
+    T: Controller + Send,
+{
+    fn update_outputs(&mut self) {
+        let mut controller = self.controller.lock().unwrap();
+        (*controller).update_outputs();
+    }
+
+    fn status(&mut self) -> Vec<OutputStatus> {
+        let mut controller = self.controller.lock().unwrap();
+        (*controller).status()
+    }
+
+    fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()> {
+        let mut controller = self.controller.lock().unwrap();
+        (*controller).clear_overrides(output_name)
+    }
+
+    fn fail_safe(&mut self) {
+        let mut controller = self.controller.lock().unwrap();
+        (*controller).fail_safe()
+    }
+}
+
+impl<T> http::Controller for SafeController<T>
+where
+    T: Controller,
+{
+    fn clear_overrides(&mut self, output_name: outputs::OutputName) -> Result<()> {
+        let mut controller = self.controller.lock().unwrap();
+        (*controller).clear_overrides(output_name)
+    }
+}
+
+impl<T> Clone for SafeController<T>
+where
+    T: Controller + Send,
+{
+    fn clone(&self) -> Self {
+        Self {
+            controller: self.controller.clone(),
+        }
+    }
 }

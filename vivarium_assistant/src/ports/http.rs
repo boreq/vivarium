@@ -1,12 +1,14 @@
 use crate::{
     adapters::metrics::{self},
     config,
+    domain::outputs::OutputName,
     errors::{Error, Result},
 };
 use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
+    routing::delete,
 };
 use axum::{routing::get, Router};
 use prometheus::{Registry, TextEncoder};
@@ -24,12 +26,15 @@ impl Server {
         Self {}
     }
 
-    pub async fn run(&self, config: &config::Config, metrics: metrics::Metrics) -> Result<()> {
-        let app_state = AppStateGeneric { metrics };
-
+    pub async fn run<M, C>(&self, config: &config::Config, deps: Deps<M, C>) -> Result<()>
+    where
+        M: Metrics + Sync + Send + Clone + 'static,
+        C: Controller + Sync + Send + Clone + 'static,
+    {
         let app = Router::new()
-            .route("/metrics", get(handle_metrics::<metrics::Metrics>))
-            .with_state(app_state);
+            .route("/metrics", get(handle_metrics))
+            .route("/outputs/:name/overrides", delete(handle_overrides_delete))
+            .with_state(deps);
 
         let listener = tokio::net::TcpListener::bind(config.address()).await?;
         axum::serve(listener, app).await?;
@@ -37,21 +42,43 @@ impl Server {
     }
 }
 
-async fn handle_metrics<M>(
-    State(state): State<AppStateGeneric<M>>,
+async fn handle_metrics<M, C>(
+    State(deps): State<Deps<M, C>>,
 ) -> std::result::Result<String, AppError>
 where
     M: Metrics,
 {
-    let registry = state.metrics.registry();
+    let registry = deps.metrics.registry();
+    let metrics = registry.gather();
+    let encoder = TextEncoder::new();
+    Ok(encoder.encode_to_string(&metrics)?)
+}
+
+async fn handle_overrides_delete<M, C>(
+    State(deps): State<Deps<M, C>>,
+) -> std::result::Result<String, AppError>
+where
+    M: Metrics,
+{
+    let registry = deps.metrics.registry();
     let metrics = registry.gather();
     let encoder = TextEncoder::new();
     Ok(encoder.encode_to_string(&metrics)?)
 }
 
 #[derive(Clone)]
-struct AppStateGeneric<M> {
+pub struct Deps<M, C> {
     metrics: M,
+    controller: C,
+}
+
+impl<M, C> Deps<M, C> {
+    pub fn new(metrics: M, controller: C) -> Self {
+        Self {
+            metrics,
+            controller,
+        }
+    }
 }
 
 pub trait Metrics {
@@ -60,8 +87,12 @@ pub trait Metrics {
 
 impl Metrics for metrics::Metrics {
     fn registry(&self) -> &Registry {
-        self.registry()
+        metrics::Metrics::registry(self)
     }
+}
+
+pub trait Controller {
+    fn clear_overrides(&mut self, output_name: OutputName) -> Result<()>;
 }
 
 struct AppError(anyhow::Error);
