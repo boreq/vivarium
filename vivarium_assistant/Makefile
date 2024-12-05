@@ -48,6 +48,13 @@ CROSS_COMPILATION_RPI_RUSTFLAGS=-C target-cpu=arm1176jz-s
 CROSS_COMPILATION_RPI_TARGET=arm-unknown-linux-gnueabihf
 CROSS_COMPILATION_RPI_COMMAND=RUSTFLAGS='$(CROSS_COMPILATION_RPI_RUSTFLAGS)' CROSS_CONTAINER_ENGINE=podman cross build --target=$(CROSS_COMPILATION_RPI_TARGET) 
 
+.PHONY: update
+update: cross-compile-release cross-compile-release-push restart
+
+.PHONY: restart
+restart: 
+	ssh terrarium 'sudo systemctl restart vivarium-assistant.service; sleep 5; systemctl status vivarium-assistant.service'
+
 .PHONY: cross-compile
 cross-compile: cross-compile-debug cross-compile-release
 
