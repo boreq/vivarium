@@ -79,5 +79,5 @@ cross-compile-debug-push:
 
 .PHONY: mist
 mist:
-	 curl -H 'Content-Type: application/json' -d '{ "state":"ON","for_seconds":3}' -X POST http://192.168.200.8:8118/outputs/Misting/overrides
+	 curl -H 'Content-Type: application/json' -d '{ "state":"ON","for_seconds":4}' -X POST http://192.168.200.8:8118/outputs/Misting/overrides
 
