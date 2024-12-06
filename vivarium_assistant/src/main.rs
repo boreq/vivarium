@@ -14,7 +14,7 @@ use vivarium_assistant::errors::Result;
 use vivarium_assistant::ports::http::{self, Server};
 
 const UPDATE_SENSORS_EVERY: Duration = Duration::from_secs(10);
-const UPDATE_OUTPUTS_EVERY: Duration = Duration::from_secs(1);
+const UPDATE_OUTPUTS_EVERY: Duration = Duration::from_millis(100);
 
 #[tokio::main]
 async fn main() -> Result<()> {
