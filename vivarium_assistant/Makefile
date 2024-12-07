@@ -76,8 +76,3 @@ cross-compile-debug:
 .PHONY: cross-compile-debug-push
 cross-compile-debug-push:
 	rsync --progress -z ./target/$(CROSS_COMPILATION_RPI_TARGET)/debug/$(MAIN_BINARY_NAME) terrarium:~/vivarium_assistant_cross_compile_debug
-
-.PHONY: mist
-mist:
-	 curl -H 'Content-Type: application/json' -d '{ "state":"ON","for_seconds":4}' -X POST http://192.168.200.8:8118/outputs/Misting/overrides
-
