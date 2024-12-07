@@ -1,13 +1,13 @@
 use super::{InputPin, OutputPin, OutputPinState, PinNumber, GPIO};
 use crate::errors::Result;
 use anyhow::anyhow;
-use chrono::NaiveTime;
+use chrono::{DateTime, NaiveTime, Utc};
 use chrono::{TimeDelta, Timelike};
 use log::info;
 use std::fmt::Display;
 
 pub trait CurrentTimeProvider {
-    fn now(&self) -> NaiveTime;
+    fn now(&self) -> DateTime<Utc>;
 }
 
 #[derive(Copy, Debug, Clone, PartialEq)]
@@ -204,7 +204,7 @@ impl<OP: OutputPin, CTP: CurrentTimeProvider> Controller<OP, CTP> {
     }
 
     pub fn update_outputs(&mut self) {
-        let now = self.current_time_provider.now();
+        let now = self.current_time_provider.now().naive_local().time();
 
         for output in &mut self.outputs {
             match output.target_state(&now) {

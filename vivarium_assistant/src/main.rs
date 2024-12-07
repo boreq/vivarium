@@ -7,7 +7,7 @@ use std::{env, fs};
 use tokio::time;
 use vivarium_assistant::adapters::{self, config, metrics, raspberrypi};
 use vivarium_assistant::config::Config;
-use vivarium_assistant::domain::outputs::OutputStatus;
+use vivarium_assistant::domain::outputs::{CurrentTimeProvider, OutputStatus};
 use vivarium_assistant::domain::{self, GPIO};
 use vivarium_assistant::domain::{outputs, sensors};
 use vivarium_assistant::errors::Result;
@@ -26,14 +26,16 @@ async fn main() -> Result<()> {
     #[cfg(not(feature = "not_raspberry_pi"))]
     let gpio = raspberrypi::GPIO::new()?;
 
-    let config = load_config()?;
     let current_time_provider = adapters::CurrentTimeProvider::new();
+    let mut metrics = metrics::Metrics::new()?;
+    metrics.set_startup_time(&current_time_provider.now());
+
+    let config = load_config()?;
     let controller = SafeController::new(outputs::Controller::new(
         config.outputs(),
         gpio.clone(),
-        current_time_provider,
+        current_time_provider.clone(),
     )?);
-    let metrics = metrics::Metrics::new()?;
     let server = Server::new();
 
     let mut water_level_sensors = vec![];

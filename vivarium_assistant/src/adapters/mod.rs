@@ -7,9 +7,10 @@ use crate::{
     errors::Result,
 };
 use anyhow::anyhow;
-use chrono::Local;
+use chrono::Utc;
 use log::debug;
 
+#[derive(Clone)]
 pub struct CurrentTimeProvider {}
 
 impl CurrentTimeProvider {
@@ -19,9 +20,8 @@ impl CurrentTimeProvider {
 }
 
 impl outputs::CurrentTimeProvider for CurrentTimeProvider {
-    fn now(&self) -> chrono::NaiveTime {
-        let now = Local::now();
-        now.time()
+    fn now(&self) -> chrono::DateTime<Utc> {
+        Utc::now()
     }
 }
 
