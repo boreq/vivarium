@@ -1,7 +1,7 @@
 use super::{InputPin, OutputPin, OutputPinState, PinNumber, GPIO};
 use crate::errors::Result;
 use anyhow::anyhow;
-use chrono::{DateTime, NaiveTime, Utc};
+use chrono::{DateTime, Local, NaiveTime, Utc};
 use chrono::{TimeDelta, Timelike};
 use log::info;
 use std::fmt::Display;
@@ -204,10 +204,13 @@ impl<OP: OutputPin, CTP: CurrentTimeProvider> Controller<OP, CTP> {
     }
 
     pub fn update_outputs(&mut self) {
-        let now = self.current_time_provider.now().naive_local().time();
+        let now = self.current_time_provider.now();
+        self.update_outputs_for_time(now.into());
+    }
 
+    fn update_outputs_for_time(&mut self, now: DateTime<Local>) {
         for output in &mut self.outputs {
-            match output.target_state(&now) {
+            match output.target_state(&now.time()) {
                 OutputState::On => {
                     if output.pin.state() != OutputPinState::High {
                         info!("turning on output '{name}'", name = output.definition.name);
@@ -222,7 +225,7 @@ impl<OP: OutputPin, CTP: CurrentTimeProvider> Controller<OP, CTP> {
                 }
             }
 
-            output.cleanup_overrides(&now);
+            output.cleanup_overrides(&now.time());
         }
     }
 
