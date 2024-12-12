@@ -25,3 +25,7 @@ path = "src/bin/aht20.rs"
 [[bin]]
 name = "hcsr04"
 path = "src/bin/hcsr04.rs"
+
+[[bin]]
+name = "beacon-shoot"
+path = "src/bin/beacon_shoot.rs"
