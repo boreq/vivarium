@@ -82,8 +82,7 @@ where
 {
     let name = outputs::OutputName::new(name)?;
     let state = parse_state(&payload.state)?;
-    let in_the_future = Duration::from_secs(5);
-    let when = (chrono::Local::now() + in_the_future).naive_local().time();
+    let when = chrono::Local::now().naive_local().time();
     let activation = outputs::ScheduledActivation::new(when, payload.for_seconds)?;
     Ok(deps.controller.add_override(name, state, activation)?)
 }
