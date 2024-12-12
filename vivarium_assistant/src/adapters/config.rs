@@ -52,7 +52,7 @@ impl TryFrom<&SerializedOutput> for OutputDefinition {
     fn try_from(value: &SerializedOutput) -> std::result::Result<Self, Self::Error> {
         let mut activations_vec = vec![];
         for activation in &value.activations {
-            let when = NaiveTime::parse_from_str(&activation.when, "%H:%M")?;
+            let when = NaiveTime::parse_from_str(&activation.when, "%H:%M:%S")?;
             activations_vec.push(ScheduledActivation::new(when, activation.for_seconds)?);
         }
 
