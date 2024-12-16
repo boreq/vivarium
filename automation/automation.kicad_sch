@@ -2851,7 +2851,7 @@
 		)
 		(uuid "814b524f-8cb8-485f-b054-c3ff5c0bd319")
 	)
-	(text "red vcc\nblack gnd\nwhite sda\ngreen scl"
+	(text "red/orange vcc\nblack gnd\nwhite/violet sda\ngreen scl"
 		(exclude_from_sim no)
 		(at 133.35 96.012 0)
 		(effects
