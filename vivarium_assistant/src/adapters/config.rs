@@ -24,10 +24,16 @@ pub fn load(config: &str) -> Result<Config> {
         water_level_sensors.push(WaterLevelSensorDefinition::try_from(water_level_sensor)?);
     }
 
+    let aht_20 = match config.aht_20 {
+        Some(name) => Some(SensorName::new(name)?),
+        None => None,
+    };
+
     Config::new(
         config.address,
         OutputDefinitions::new(&output_definitions)?,
         WaterLevelSensorDefinitions::new(&water_level_sensors)?,
+        aht_20,
     )
 }
 
@@ -36,6 +42,7 @@ struct SerializedConfig {
     address: String,
     outputs: Vec<SerializedOutput>,
     water_level_sensors: Vec<SerializedWaterLevelSensor>,
+    aht_20: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -159,6 +166,7 @@ mod tests {
                 )?]
                 .as_ref(),
             )?,
+            Some(SensorName::new("AHT20 sensor")?),
         )?;
 
         assert_eq!(config, expected_config);

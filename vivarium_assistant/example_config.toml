@@ -1,4 +1,5 @@
 address = "localhost:8118"
+aht_20 = "AHT20 sensor"
 
 [[outputs]]
 name = "Output 1"

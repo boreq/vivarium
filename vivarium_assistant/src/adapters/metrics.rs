@@ -1,7 +1,7 @@
 use crate::{
     domain::{
         outputs::{OutputName, OutputState},
-        sensors::{SensorName, WaterLevel},
+        sensors::{Humidity, SensorName, Temperature, WaterLevel},
     },
     errors::Result,
 };
@@ -13,6 +13,8 @@ pub struct Metrics {
     registry: prometheus::Registry,
     output_gauge: GaugeVec,
     water_level_gauge: GaugeVec,
+    temperature_gauge: GaugeVec,
+    humidity_gauge: GaugeVec,
     startup_time_gauge: Gauge,
 }
 
@@ -29,6 +31,18 @@ impl Metrics {
         )?;
         registry.register(Box::new(water_level_gauge.clone()))?;
 
+        let temperature_gauge = GaugeVec::new(
+            Opts::new("temperatures", "temperature reported by the sensors"),
+            &["name"],
+        )?;
+        registry.register(Box::new(temperature_gauge.clone()))?;
+
+        let humidity_gauge = GaugeVec::new(
+            Opts::new("humidities", "humidity reported by the sensors"),
+            &["name"],
+        )?;
+        registry.register(Box::new(humidity_gauge.clone()))?;
+
         let startup_time_gauge = Gauge::new("startup_time", "startup time of the program")?;
         registry.register(Box::new(startup_time_gauge.clone()))?;
 
@@ -36,6 +50,8 @@ impl Metrics {
             registry,
             output_gauge,
             water_level_gauge,
+            temperature_gauge,
+            humidity_gauge,
             startup_time_gauge,
         })
     }
@@ -62,6 +78,22 @@ impl Metrics {
                 "name" => sensor.name(),
             })
             .set(level.percentage().into());
+    }
+
+    pub fn report_temperature(&mut self, sensor: &SensorName, temperature: &Temperature) {
+        self.temperature_gauge
+            .with(&labels! {
+                "name" => sensor.name(),
+            })
+            .set(temperature.celcius().into());
+    }
+
+    pub fn report_humidity(&mut self, sensor: &SensorName, humidity: &Humidity) {
+        self.humidity_gauge
+            .with(&labels! {
+                "name" => sensor.name(),
+            })
+            .set(humidity.percentage().into());
     }
 
     pub fn registry(&self) -> &Registry {

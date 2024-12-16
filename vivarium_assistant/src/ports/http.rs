@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crate::{
     adapters::metrics::{self},
     config,

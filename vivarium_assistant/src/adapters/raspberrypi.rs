@@ -122,6 +122,37 @@ impl TryFrom<gpio::Trigger> for domain::Trigger {
     }
 }
 
+struct WrappedI2C {
+    slave_address: u16,
+    i2c: i2c::I2c,
+}
+
+impl WrappedI2C {
+    fn new(slave_address: u16, i2c: i2c::I2c) -> Self {
+        Self { slave_address, i2c }
+    }
+
+    fn write_read(&mut self, write_buffer: &[u8], read_buffer: &mut [u8]) -> Result<()> {
+        self.i2c.set_slave_address(self.slave_address)?;
+        Ok(self.i2c.write_read(write_buffer, read_buffer)?)
+    }
+
+    fn block_write(&mut self, command: u8, buffer: &[u8]) -> Result<()> {
+        self.i2c.set_slave_address(self.slave_address)?;
+        Ok(self.i2c.block_write(command, buffer)?)
+    }
+
+    fn read(&mut self, buffer: &mut [u8]) -> Result<usize> {
+        self.i2c.set_slave_address(self.slave_address)?;
+        Ok(self.i2c.read(buffer)?)
+    }
+
+    pub fn write(&mut self, buffer: &[u8]) -> Result<usize> {
+        self.i2c.set_slave_address(self.slave_address)?;
+        Ok(self.i2c.write(buffer)?)
+    }
+}
+
 const ATH20_ADDRESS: u16 = 0x38;
 
 // Partially based on the Adafruit's library. Unfortunately reading that code
@@ -137,12 +168,14 @@ const ATH20_ADDRESS: u16 = 0x38;
 //
 // TODO: automatically set slave address, right now this isn't done correctly in all places.
 pub struct AHT20 {
-    i2c: i2c::I2c,
+    i2c: WrappedI2C,
 }
 
 impl AHT20 {
     pub fn new(i2c: i2c::I2c) -> Result<Self> {
-        Ok(Self { i2c })
+        Ok(Self {
+            i2c: WrappedI2C::new(ATH20_ADDRESS, i2c),
+        })
     }
 
     pub fn measure(&mut self) -> Result<AHT20Measurement> {
@@ -179,14 +212,14 @@ impl AHT20 {
 
     // todo: this seems useless, just try reading the data?
     fn confirm_connected(&mut self) -> Result<()> {
-        if self.send(&[]).is_ok() {
+        if self.i2c.write(&[]).is_ok() {
             return Ok(());
         }
 
         // wait and then retry if we fail
         // the arduino library uses those timings
         thread::sleep(Duration::from_millis(20));
-        self.send(&[])?;
+        self.i2c.write(&[])?;
         Ok(())
     }
 
@@ -216,7 +249,7 @@ impl AHT20 {
         temperature |= buf[5] as u32;
 
         let temperature = (temperature as f32 / 1048576.0) * 200.0 - 50.0;
-        let humidity = (humidity as f32 / 1048576.0) * 100.0;
+        let humidity = humidity as f32 / 1048576.0;
 
         let temperature = Temperature::new(temperature)?;
         let humidity = Humidity::new(humidity)?;
@@ -225,11 +258,6 @@ impl AHT20 {
             temperature,
             humidity,
         })
-    }
-
-    fn send(&mut self, buffer: &[u8]) -> Result<usize> {
-        self.i2c.set_slave_address(ATH20_ADDRESS)?;
-        Ok(self.i2c.write(buffer)?)
     }
 }
 

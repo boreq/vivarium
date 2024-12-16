@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use env_logger::Env;
 use log::{error, info};
+use rppal::i2c::I2c;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{env, fs};
@@ -31,6 +32,7 @@ async fn main() -> Result<()> {
     metrics.set_startup_time(&current_time_provider.now());
 
     let config = load_config()?;
+
     let controller = SafeController::new(outputs::Controller::new(
         config.outputs(),
         gpio.clone(),
@@ -60,6 +62,15 @@ async fn main() -> Result<()> {
         let metrics = metrics.clone();
         async move { update_water_sensors_loop(water_level_sensors, metrics).await }
     });
+    if let Some(aht_20_name) = config.aht_20() {
+        tokio::spawn({
+            let i2c = I2c::new()?;
+            let aht20 = raspberrypi::AHT20::new(i2c)?;
+            let aht_20_name = aht_20_name.clone();
+            let metrics = metrics.clone();
+            async move { update_aht20_loop(&aht_20_name, aht20, metrics).await }
+        });
+    }
     tokio::spawn({
         let metrics = metrics.clone();
         let controller = controller.clone();
@@ -146,6 +157,43 @@ async fn update_water_sensors_loop<T, M>(
     }
 }
 
+async fn update_aht20_loop<M>(
+    sensor_name: &sensors::SensorName,
+    mut sensor: raspberrypi::AHT20,
+    mut metrics: M,
+) where
+    M: Metrics,
+{
+    let zero_temperature = sensors::Temperature::new(0.0).unwrap();
+    let zero_humidity = sensors::Humidity::new(0.0).unwrap();
+
+    loop {
+        match sensor.measure() {
+            Ok(value) => {
+                info!(
+                        "AHT20 sensor '{name}' reported temperature '{temperature}' and humidity '{humidity}'",
+                        name = sensor_name,
+                        temperature = value.temperature(),
+                        humidity = value.humidity(),
+                    );
+                metrics.report_temperature(sensor_name, &value.temperature());
+                metrics.report_humidity(sensor_name, &value.humidity());
+            }
+            Err(err) => {
+                error!(
+                    "AHT20 sensor '{name}' returned an error: {err}",
+                    name = sensor_name,
+                    err = err
+                );
+                metrics.report_temperature(sensor_name, &zero_temperature);
+                metrics.report_humidity(sensor_name, &zero_humidity);
+            }
+        };
+
+        time::sleep(UPDATE_SENSORS_EVERY).await;
+    }
+}
+
 async fn update_outputs_loop<C, M>(controller: C, mut metrics: M)
 where
     C: Controller,
@@ -168,6 +216,12 @@ struct WaterLevelSensorWithName<T: sensors::DistanceSensor> {
 trait Metrics {
     fn report_output(&mut self, output: &outputs::OutputName, state: &outputs::OutputState);
     fn report_water_level(&mut self, sensor: &sensors::SensorName, level: &sensors::WaterLevel);
+    fn report_temperature(
+        &mut self,
+        sensor: &sensors::SensorName,
+        temperature: &sensors::Temperature,
+    );
+    fn report_humidity(&mut self, sensor: &sensors::SensorName, humidity: &sensors::Humidity);
 }
 
 impl Metrics for metrics::Metrics {
@@ -177,6 +231,18 @@ impl Metrics for metrics::Metrics {
 
     fn report_water_level(&mut self, sensor: &sensors::SensorName, level: &sensors::WaterLevel) {
         metrics::Metrics::report_water_level(self, sensor, level);
+    }
+
+    fn report_temperature(
+        &mut self,
+        sensor: &sensors::SensorName,
+        temperature: &sensors::Temperature,
+    ) {
+        metrics::Metrics::report_temperature(self, sensor, temperature);
+    }
+
+    fn report_humidity(&mut self, sensor: &sensors::SensorName, humidity: &sensors::Humidity) {
+        metrics::Metrics::report_humidity(self, sensor, humidity);
     }
 }
 

@@ -20,7 +20,7 @@ impl Humidity {
             return Err(anyhow!("percentage can't be negative"));
         }
 
-        if percentage > 100.0 {
+        if percentage > 1.0 {
             return Err(anyhow!("percentage can't be above 100"));
         }
 
@@ -29,6 +29,12 @@ impl Humidity {
 
     pub fn percentage(&self) -> f32 {
         self.percentage
+    }
+}
+
+impl Display for Humidity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.0}%", self.percentage * 100.0)
     }
 }
 
@@ -56,6 +62,12 @@ impl Temperature {
 
     pub fn celcius(&self) -> f32 {
         self.celcius
+    }
+}
+
+impl Display for Temperature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.1}C", self.celcius)
     }
 }
 
