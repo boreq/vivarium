@@ -2082,6 +2082,12 @@
 		(uuid "4edb1133-9410-431b-a50b-44f61374de8e")
 	)
 	(junction
+		(at 96.52 87.63)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "6b085417-a074-4067-a4c6-ad5c55053d63")
+	)
+	(junction
 		(at 162.56 132.08)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2137,7 +2143,7 @@
 	)
 	(wire
 		(pts
-			(xy 96.52 29.21) (xy 96.52 134.62)
+			(xy 96.52 29.21) (xy 96.52 87.63)
 		)
 		(stroke
 			(width 0)
@@ -2227,6 +2233,16 @@
 	)
 	(wire
 		(pts
+			(xy 67.31 49.53) (xy 107.95 49.53)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "36e6e0a0-fd96-4027-b888-c248b592cdce")
+	)
+	(wire
+		(pts
 			(xy 119.38 129.54) (xy 153.67 129.54)
 		)
 		(stroke
@@ -2244,6 +2260,16 @@
 			(type default)
 		)
 		(uuid "38889e58-9619-4774-a526-7d8d6a4c4a7a")
+	)
+	(wire
+		(pts
+			(xy 96.52 87.63) (xy 134.62 87.63)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4058a514-60e7-4737-87cf-13eab8289841")
 	)
 	(wire
 		(pts
@@ -2317,6 +2343,26 @@
 	)
 	(wire
 		(pts
+			(xy 110.49 82.55) (xy 134.62 82.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "61e8882f-a3fa-4074-aa46-1288f9f05380")
+	)
+	(wire
+		(pts
+			(xy 96.52 87.63) (xy 96.52 134.62)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "62ba6032-aa9e-49d0-a27f-07adc177a3ea")
+	)
+	(wire
+		(pts
 			(xy 153.67 129.54) (xy 203.2 129.54)
 		)
 		(stroke
@@ -2324,6 +2370,16 @@
 			(type default)
 		)
 		(uuid "62d1db55-5f6d-4f50-b7eb-7f05ef0bfd97")
+	)
+	(wire
+		(pts
+			(xy 107.95 85.09) (xy 134.62 85.09)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6d205241-ba14-4c4c-b21b-60a57f401cd8")
 	)
 	(wire
 		(pts
@@ -2357,6 +2413,16 @@
 	)
 	(wire
 		(pts
+			(xy 67.31 46.99) (xy 110.49 46.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "752f4e32-a189-4fd2-8729-e914ba1c20b0")
+	)
+	(wire
+		(pts
 			(xy 124.46 12.7) (xy 12.7 12.7)
 		)
 		(stroke
@@ -2364,6 +2430,16 @@
 			(type default)
 		)
 		(uuid "7e447989-f068-4821-b189-79dd485eef74")
+	)
+	(wire
+		(pts
+			(xy 134.62 90.17) (xy 123.19 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "825bb23c-9723-4925-a702-4e4e0eceb768")
 	)
 	(wire
 		(pts
@@ -2477,6 +2553,16 @@
 	)
 	(wire
 		(pts
+			(xy 123.19 90.17) (xy 123.19 91.44)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a77181ba-e579-4a01-8255-547401193318")
+	)
+	(wire
+		(pts
 			(xy 119.38 139.7) (xy 171.45 139.7)
 		)
 		(stroke
@@ -2554,6 +2640,16 @@
 			(type default)
 		)
 		(uuid "c574a7f1-90a5-48c1-bfff-7b716eec167b")
+	)
+	(wire
+		(pts
+			(xy 110.49 46.99) (xy 110.49 82.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ca8a8843-9fe0-437a-9c6b-ecf65e0e3033")
 	)
 	(wire
 		(pts
@@ -2687,6 +2783,16 @@
 	)
 	(wire
 		(pts
+			(xy 107.95 49.53) (xy 107.95 85.09)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fddbc6f9-9ee9-4b59-aa85-af2fdea9a0af")
+	)
+	(wire
+		(pts
 			(xy 15.24 15.24) (xy 15.24 49.53)
 		)
 		(stroke
@@ -2734,6 +2840,26 @@
 			)
 		)
 		(uuid "67fd9d83-4ff2-4fd5-ba96-2a8200472567")
+	)
+	(text "does not correspond to the order on the package"
+		(exclude_from_sim no)
+		(at 164.338 91.694 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "814b524f-8cb8-485f-b054-c3ff5c0bd319")
+	)
+	(text "red vcc\nblack gnd\nwhite sda\ngreen scl"
+		(exclude_from_sim no)
+		(at 133.35 96.012 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "89bc5775-0f33-4545-94a4-c87f24dfda73")
 	)
 	(text "trig"
 		(exclude_from_sim no)
@@ -3722,6 +3848,71 @@
 		)
 	)
 	(symbol
+		(lib_id "power:GND")
+		(at 123.19 91.44 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "c566c3b6-91a8-4bad-bd9f-f0ba77eba2a8")
+		(property "Reference" "#PWR013"
+			(at 123.19 97.79 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND"
+			(at 123.19 96.52 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 123.19 91.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 123.19 91.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 123.19 91.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "ca768d87-f488-4936-a468-aecf843442b4")
+		)
+		(instances
+			(project "automation"
+				(path "/4d574e84-6509-49dd-9c16-a03cb6bef18d"
+					(reference "#PWR013")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:+5V")
 		(at 212.09 148.59 180)
 		(unit 1)
@@ -3846,6 +4037,82 @@
 			(project "automation"
 				(path "/4d574e84-6509-49dd-9c16-a03cb6bef18d"
 					(reference "#PWR05")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:Conn_01x04_Pin")
+		(at 139.7 87.63 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "dce910f4-191e-45fb-ade6-bf8c3ef660ac")
+		(property "Reference" "J4"
+			(at 140.97 85.0899 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "HTP sensor (AHT20+BMP280)"
+			(at 140.97 87.6299 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" ""
+			(at 139.7 87.63 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 139.7 87.63 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x04, script generated"
+			(at 139.7 87.63 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "06a1d398-e2ea-4f42-babb-9198f4ebacce")
+		)
+		(pin "2"
+			(uuid "74ae765a-6cba-4c3b-abf0-eeeea79a0e29")
+		)
+		(pin "3"
+			(uuid "20f8aca8-7fd9-4148-a7c7-cb479a93b028")
+		)
+		(pin "4"
+			(uuid "b6b9a67f-fa9a-4ad9-b046-8b473579bad4")
+		)
+		(instances
+			(project ""
+				(path "/4d574e84-6509-49dd-9c16-a03cb6bef18d"
+					(reference "J4")
 					(unit 1)
 				)
 			)
