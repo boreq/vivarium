@@ -100,23 +100,34 @@ Open `lid.dxf` with `librecad` in case you need to redo a panel.
 
 ### Light
 
-Those are the parameters for the LED strip supposedly but who knows:
-
-```
-Voltage: 12V DC
-Color: 4000-4500K
-LEDs per meter: 320
-Flux: 900lm/m
-Recommended power supply: 10W per meter
-```
-
 The strips were self-adhesive, no extra glue was used which was a mistake as
 they started coming off, perhaps due to moisture. I'm using the strong double
 sided tape to put them back on. We will see if that will help.
 
 The power connector is one of the standard DC connectors, `2.5/5.5` or
 `2.1/5.5`. The connector on this power supply was replaced and it unscrews. It
-can be reused.
+can be reused. The strips are 12V.
+
+#### Strip 1
+
+Those are the parameters for the LED strip supposedly but who knows:
+
+```
+Color: 4000-4500K
+LEDs per meter: 320
+Flux: 900lm/m
+Recommended power supply: 10W per meter (lol)
+```
+
+Basically the whole thing was used, I just measured the amps to be around 0.85A
+which is closer to 2W per meter.
+
+### Strip 2
+
+```
+Color: 4000K
+LEDs per meter: 320
+```
 
 ### False bottom
 
