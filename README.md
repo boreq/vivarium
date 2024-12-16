@@ -122,7 +122,7 @@ Recommended power supply: 10W per meter (lol)
 Basically the whole thing was used, I just measured the amps to be around 0.85A
 which is closer to 2W per meter.
 
-### Strip 2
+#### Strip 2
 
 ```
 Color: 4000K
