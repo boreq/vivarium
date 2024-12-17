@@ -1,3 +1,5 @@
+#![feature(duration_constructors)]
+
 use anyhow::anyhow;
 use env_logger::Env;
 use log::{error, info};
@@ -9,6 +11,7 @@ use tokio::time;
 use vivarium_assistant::adapters::{self, config, metrics, raspberrypi};
 use vivarium_assistant::config::Config;
 use vivarium_assistant::domain::outputs::{CurrentTimeProvider, OutputStatus};
+use vivarium_assistant::domain::sensors::{MedianCache, WaterLevel};
 use vivarium_assistant::domain::{self, GPIO};
 use vivarium_assistant::domain::{outputs, sensors};
 use vivarium_assistant::errors::Result;
@@ -16,6 +19,10 @@ use vivarium_assistant::ports::http::{self, Server};
 
 const UPDATE_SENSORS_EVERY: Duration = Duration::from_secs(10);
 const UPDATE_OUTPUTS_EVERY: Duration = Duration::from_millis(100);
+const WATER_SENSOR_SMOOTHING_PERIOD: Duration = Duration::from_mins(5); // should presumably be
+                                                                        // significantly larger
+                                                                        // than
+                                                                        // UPDATE_SENSORS_EVERY
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -50,9 +57,10 @@ async fn main() -> Result<()> {
             definition.max_distance(),
             sensor,
         )?;
-        water_level_sensors.push(WaterLevelSensorWithName {
+        water_level_sensors.push(QueriedWaterLevelSensor {
             name: definition.name().clone(),
             sensor,
+            cache: MedianCache::new(WATER_SENSOR_SMOOTHING_PERIOD)?,
         });
     }
 
@@ -123,7 +131,7 @@ where
 }
 
 async fn update_water_sensors_loop<T, M>(
-    mut sensors: Vec<WaterLevelSensorWithName<T>>,
+    mut sensors: Vec<QueriedWaterLevelSensor<T>>,
     mut metrics: M,
 ) where
     T: sensors::DistanceSensor,
@@ -133,14 +141,14 @@ async fn update_water_sensors_loop<T, M>(
 
     loop {
         for sensor in &mut sensors {
-            let level = match sensor.sensor.measure() {
+            match sensor.sensor.measure() {
                 Ok(value) => {
                     info!(
                         "Water level sensor '{name}' reported water level '{level}'",
                         name = sensor.name,
                         level = value
                     );
-                    value
+                    sensor.cache.put(value);
                 }
                 Err(err) => {
                     error!(
@@ -148,10 +156,14 @@ async fn update_water_sensors_loop<T, M>(
                         name = sensor.name,
                         err = err
                     );
-                    zero
                 }
             };
-            metrics.report_water_level(&sensor.name, &level);
+
+            let level = match sensor.cache.get() {
+                Some(value) => value,
+                None => &zero,
+            };
+            metrics.report_water_level(&sensor.name, level);
         }
         time::sleep(UPDATE_SENSORS_EVERY).await;
     }
@@ -208,9 +220,10 @@ where
     }
 }
 
-struct WaterLevelSensorWithName<T: sensors::DistanceSensor> {
+struct QueriedWaterLevelSensor<T: sensors::DistanceSensor> {
     name: sensors::SensorName,
     sensor: sensors::WaterLevelSensor<T>,
+    cache: sensors::MedianCache<WaterLevel>,
 }
 
 trait Metrics {

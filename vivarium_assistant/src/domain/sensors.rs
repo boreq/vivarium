@@ -2,6 +2,7 @@ use std::{fmt::Display, thread, time::Duration};
 
 use crate::errors::Result;
 use anyhow::anyhow;
+use chrono::{TimeDelta, Utc};
 
 use super::{InputPin, OutputPin, PinNumber};
 
@@ -98,7 +99,7 @@ impl Distance {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct WaterLevel {
     percentage: f32,
 }
@@ -118,6 +119,21 @@ impl WaterLevel {
 
     pub fn percentage(&self) -> f32 {
         self.percentage
+    }
+}
+
+impl PartialOrd for WaterLevel {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for WaterLevel {}
+
+impl Ord for WaterLevel {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // the constructor verifies that percentage is_finite so I understand this can't fail
+        self.percentage.partial_cmp(&other.percentage()).unwrap()
     }
 }
 
@@ -350,9 +366,92 @@ impl<A: OutputPin, B: InputPin> DistanceSensor for HCSR04<A, B> {
     }
 }
 
+pub struct MedianCache<T> {
+    period: TimeDelta,
+    values: Vec<ValueWithTime<T>>,
+}
+
+impl<T> MedianCache<T> {
+    pub fn new(period: Duration) -> Result<Self> {
+        Ok(Self {
+            period: chrono::TimeDelta::from_std(period)?,
+            values: vec![],
+        })
+    }
+}
+
+impl<T> MedianCache<T>
+where
+    T: Ord,
+{
+    pub fn put(&mut self, value: T) {
+        self.values.push(ValueWithTime {
+            value,
+            time: chrono::Utc::now(),
+        });
+        self.values.sort_by(|a, b| a.value.cmp(&b.value));
+    }
+
+    pub fn get(&mut self) -> Option<&T> {
+        let now = chrono::Utc::now();
+        self.values.retain(|v| now - v.time < self.period);
+        self.values.get(self.values.len() / 2).map(|v| &v.value)
+    }
+}
+
+struct ValueWithTime<T> {
+    value: T,
+    time: chrono::DateTime<Utc>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(test)]
+    mod median_cache {
+        use super::*;
+
+        #[test]
+        fn get_median_value() -> Result<()> {
+            struct TestCase<'a> {
+                name: &'a str,
+                values: Vec<i32>,
+                result: i32,
+            }
+
+            let test_cases = vec![
+                TestCase {
+                    name: "asc",
+                    values: vec![1, 2, 3],
+                    result: 2,
+                },
+                TestCase {
+                    name: "desc",
+                    values: vec![3, 2, 1],
+                    result: 2,
+                },
+                TestCase {
+                    name: "not_sorted",
+                    values: vec![1, 3, 2],
+                    result: 2,
+                },
+            ];
+
+            for test_case in &test_cases {
+                print!("test case: {}", test_case.name);
+
+                let mut cache = MedianCache::new(Duration::from_secs(5))?;
+                for value in &test_case.values {
+                    cache.put(*value);
+                }
+
+                assert_eq!(Some(&test_case.result), cache.get());
+            }
+
+            Ok(())
+        }
+    }
 
     #[cfg(test)]
     mod water_level_sensor {
