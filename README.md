@@ -129,6 +129,12 @@ Color: 4000K
 LEDs per meter: 320
 ```
 
+#### UV
+
+[Repti Planet UVB 5.0
+Tropical](https://web.archive.org/web/20250115155401/https://reptiplanet.pet/portfolio-items/repti-planet-repti-uvb-5-0-3/),
+running since 2025-01-15.
+
 ### False bottom
 
 Use 20 PPI foam, ordering 45 PPI was a fuck up.
