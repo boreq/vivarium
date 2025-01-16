@@ -26,6 +26,7 @@ possible moment.
 - [*Caridina multidentata*](https://duckduckgo.com/?hps=1&q=Caridina+multidentata&iax=images&ia=images)
 - [*Clithon corona*](https://duckduckgo.com/?hps=1&q=Clithon+corona&iax=images&ia=images)
 - [Unspecified species of springtails](https://duckduckgo.com/?q=vivarium++springtails&t=ffab&iar=images&iax=images&ia=images)
+- [*Lepidodactylus lugubris*](https://duckduckgo.com/?t=ffab&q=Lepidodactylus+lugubris&iax=images&ia=images)
 
 ### DICP (Dynamic Isopod Configuration Protocol) identifiers
 
