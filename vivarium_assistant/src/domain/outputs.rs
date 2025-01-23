@@ -55,8 +55,12 @@ impl ScheduledActivation {
     pub fn has_inside(&self, time: &NaiveTime) -> bool {
         let start = self.when;
         let end = self.end();
-        let jumps_over_midnight = end.hour() < start.hour();
 
+        if start == end {
+            return true;
+        }
+
+        let jumps_over_midnight = end.hour() < start.hour();
         if jumps_over_midnight {
             time >= &start || time <= &end
         } else {
@@ -427,6 +431,12 @@ mod tests {
                     activation: ScheduledActivation::new(new_time(12, 0, 0), 10)?,
                     time: new_time(18, 0, 0),
                     expected_has_inside: false,
+                },
+                TestCase {
+                    name: "always_turned_on",
+                    activation: ScheduledActivation::new(new_time(0, 0, 0), 24 * 3600)?,
+                    time: new_time(1, 0, 0),
+                    expected_has_inside: true,
                 },
             ];
 
