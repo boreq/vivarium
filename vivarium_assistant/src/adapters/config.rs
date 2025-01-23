@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::domain::outputs::{
     OutputDefinition, OutputDefinitions, OutputName, ScheduledActivation, ScheduledActivations,
 };
@@ -9,7 +11,12 @@ use crate::{
     errors::Result,
 };
 use chrono::NaiveTime;
+use lazy_static::lazy_static;
 use serde::Deserialize;
+
+lazy_static! {
+    static ref DURATION_PARSER: duration_parser::Parser = make_parser().unwrap();
+}
 
 pub fn load(config: &str) -> Result<Config> {
     let config: SerializedConfig = toml::from_str(config)?;
@@ -60,7 +67,8 @@ impl TryFrom<&SerializedOutput> for OutputDefinition {
         let mut activations_vec = vec![];
         for activation in &value.activations {
             let when = NaiveTime::parse_from_str(&activation.when, "%H:%M:%S")?;
-            activations_vec.push(ScheduledActivation::new(when, activation.for_seconds)?);
+            let duration = DURATION_PARSER.parse(&activation.for_string)?;
+            activations_vec.push(ScheduledActivation::new(when, duration.as_secs() as u32)?);
         }
 
         Ok(Self::new(
@@ -75,7 +83,7 @@ impl TryFrom<&SerializedOutput> for OutputDefinition {
 struct SerializedScheduledActivation {
     when: String,
     #[serde(rename = "for")]
-    for_seconds: u32,
+    for_string: String,
 }
 
 #[derive(Deserialize)]
@@ -99,6 +107,34 @@ impl TryFrom<&SerializedWaterLevelSensor> for WaterLevelSensorDefinition {
             Distance::new(value.max_distance)?,
         )
     }
+}
+
+fn make_parser() -> Result<duration_parser::Parser> {
+    Ok(duration_parser::Parser::new(duration_parser::Config::new(
+        duration_parser::Units::new(&[
+            duration_parser::Unit::new(
+                duration_parser::UnitMagnitude::new(Duration::from_secs(1))?,
+                &[
+                    duration_parser::UnitName::new("second".to_string())?,
+                    duration_parser::UnitName::new("seconds".to_string())?,
+                ],
+            )?,
+            duration_parser::Unit::new(
+                duration_parser::UnitMagnitude::new(Duration::from_secs(60))?,
+                &[
+                    duration_parser::UnitName::new("minute".to_string())?,
+                    duration_parser::UnitName::new("minutes".to_string())?,
+                ],
+            )?,
+            duration_parser::Unit::new(
+                duration_parser::UnitMagnitude::new(Duration::from_secs(60 * 60))?,
+                &[
+                    duration_parser::UnitName::new("hour".to_string())?,
+                    duration_parser::UnitName::new("hours".to_string())?,
+                ],
+            )?,
+        ])?,
+    )?))
 }
 
 #[cfg(test)]
@@ -138,11 +174,11 @@ mod tests {
                             vec![
                                 ScheduledActivation::new(
                                     NaiveTime::from_hms_opt(17, 30, 00).unwrap(),
-                                    600,
+                                    30,
                                 )?,
                                 ScheduledActivation::new(
                                     NaiveTime::from_hms_opt(18, 30, 00).unwrap(),
-                                    600,
+                                    60 * 60 + 10 * 60 + 20,
                                 )?,
                             ]
                             .as_ref(),

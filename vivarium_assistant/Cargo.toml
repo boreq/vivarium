@@ -7,25 +7,30 @@ edition = "2021"
 anyhow = "1.0.91"
 tokio = { version = "1.41.0", features = ["full"] }
 chrono = "0.4.38"
-rppal = "0.19.0"
 serde = { version = "1.0.214", features = ["derive"] }
 toml = "0.8.19"
 prometheus = "0.13.4"
 axum = "0.7.9"
 log = "0.4.22"
 env_logger = "0.11.5"
+duration_parser = { git = "https://github.com/boreq/rust-duration-parser", tag="v0.0.1" }
+lazy_static = "1.5.0"
+rppal = { version = "0.19.0", optional = true}
 
 [features]
-not_raspberry_pi = []
+raspberry_pi = ["dep:rppal"]
 
 [[bin]]
 name = "aht20"
 path = "src/bin/aht20.rs"
+required-features = ["raspberry_pi"]
 
 [[bin]]
 name = "hcsr04"
 path = "src/bin/hcsr04.rs"
+required-features = ["raspberry_pi"]
 
 [[bin]]
 name = "beacon-shoot"
 path = "src/bin/beacon_shoot.rs"
+required-features = ["raspberry_pi"]

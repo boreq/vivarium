@@ -25,9 +25,10 @@ impl ScheduledActivation {
         }
 
         if for_seconds > ScheduledActivation::SECONDS_IN_AN_IMAGINARY_DAY {
-            return Err(anyhow!(
-                format!(
-                "since this type effectively represents durations on an imaginary clock face this time the day really is up to {} seconds long and it isn't just the programmer's delusion; the provided for_seconds exceeds that",
+            return Err(anyhow!(format!(
+                "since this type effectively represents durations on an imaginary clock face this
+                time the day really is up to {} seconds long and it isn't just the programmer's
+                delusion; the provided for_seconds exceeds that",
                 ScheduledActivation::SECONDS_IN_AN_IMAGINARY_DAY
             )));
         }

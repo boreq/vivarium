@@ -1,3 +1,5 @@
+#![cfg(feature = "raspberry_pi")]
+
 use std::{thread, time::Duration};
 
 use crate::{
