@@ -125,6 +125,12 @@ impl MockI2C {
     }
 }
 
+impl Default for MockI2C {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl domain::I2C for MockI2C {
     fn set_slave_address(&mut self, _slave_address: u16) -> Result<()> {
         Err(anyhow!("not implemented"))

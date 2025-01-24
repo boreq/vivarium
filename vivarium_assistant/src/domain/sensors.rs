@@ -532,22 +532,22 @@ where
 
     pub fn write_read(&mut self, write_buffer: &[u8], read_buffer: &mut [u8]) -> Result<()> {
         self.i2c.set_slave_address(self.slave_address)?;
-        Ok(self.i2c.write_read(write_buffer, read_buffer)?)
+        self.i2c.write_read(write_buffer, read_buffer)
     }
 
     pub fn block_write(&mut self, command: u8, buffer: &[u8]) -> Result<()> {
         self.i2c.set_slave_address(self.slave_address)?;
-        Ok(self.i2c.block_write(command, buffer)?)
+        self.i2c.block_write(command, buffer)
     }
 
     pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize> {
         self.i2c.set_slave_address(self.slave_address)?;
-        Ok(self.i2c.read(buffer)?)
+        self.i2c.read(buffer)
     }
 
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize> {
         self.i2c.set_slave_address(self.slave_address)?;
-        Ok(self.i2c.write(buffer)?)
+        self.i2c.write(buffer)
     }
 }
 
