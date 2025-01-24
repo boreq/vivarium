@@ -34,7 +34,7 @@ build-release:
 
 .PHONY: run
 run:
-	RUST_LOG=debug cargo run --bin $(MAIN_BINARY_NAME) --features=not_raspberry_pi example_config.toml
+	RUST_LOG=debug cargo run --bin $(MAIN_BINARY_NAME) example_config.toml
 
 .PHONY: tools
 tools:
@@ -47,11 +47,6 @@ check-repository-unchanged:
 CROSS_RPI_RUSTFLAGS=-C target-cpu=arm1176jz-s
 CROSS_RPI_TARGET=arm-unknown-linux-gnueabihf
 CROSS_RPI_COMMAND_BUILD=RUSTFLAGS='$(CROSS_RPI_RUSTFLAGS)' CROSS_CONTAINER_ENGINE=podman cross build --target=$(CROSS_RPI_TARGET) --features=raspberry_pi
-CROSS_RPI_COMMAND_TEST=RUSTFLAGS='$(CROSS_RPI_RUSTFLAGS)' CROSS_CONTAINER_ENGINE=podman cross test --target=$(CROSS_RPI_TARGET) --features=raspberry_pi
-
-.PHONY: test-cross
-test-cross:
-	$(CROSS_RPI_COMMAND_TEST)
 
 .PHONY: update
 update: cross-compile-release cross-compile-release-push restart

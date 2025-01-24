@@ -57,3 +57,11 @@ pub enum OutputPinState {
     Low,
     High,
 }
+
+pub trait I2C {
+    fn set_slave_address(&mut self, slave_address: u16) -> Result<()>;
+    fn write_read(&mut self, write_buffer: &[u8], read_buffer: &mut [u8]) -> Result<()>;
+    fn block_write(&mut self, command: u8, buffer: &[u8]) -> Result<()>;
+    fn read(&mut self, buffer: &mut [u8]) -> Result<usize>;
+    fn write(&mut self, buffer: &[u8]) -> Result<usize>;
+}

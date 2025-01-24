@@ -39,6 +39,14 @@ async fn main() -> Result<()> {
     #[cfg(feature = "raspberry_pi")]
     let gpio = raspberrypi::GPIO::new()?;
 
+    #[cfg(not(feature = "raspberry_pi"))]
+    let i2c = adapters::MockI2C::new();
+
+    #[cfg(feature = "raspberry_pi")]
+    let i2c = I2c::new();
+
+    let aht20 = sensors::AHT20::new(i2c)?;
+
     let current_time_provider = adapters::CurrentTimeProvider::new();
     let mut metrics = metrics::Metrics::new()?;
     metrics.set_startup_time(&current_time_provider.now());
@@ -76,17 +84,12 @@ async fn main() -> Result<()> {
         async move { update_water_sensors_loop(water_level_sensors, metrics).await }
     });
 
-    #[cfg(feature = "raspberry_pi")]
-    {
-        if let Some(aht_20_name) = config.aht_20() {
-            tokio::spawn({
-                let i2c = I2c::new()?;
-                let aht20 = raspberrypi::AHT20::new(i2c)?;
-                let aht_20_name = aht_20_name.clone();
-                let metrics = metrics.clone();
-                async move { update_aht20_loop(&aht_20_name, aht20, metrics).await }
-            });
-        }
+    if let Some(aht_20_name) = config.aht_20() {
+        tokio::spawn({
+            let metrics = metrics.clone();
+            let aht_20_name = aht_20_name.clone();
+            async move { update_aht20_loop(&aht_20_name, aht20, metrics).await }
+        });
     }
 
     tokio::spawn({
@@ -179,13 +182,13 @@ async fn update_water_sensors_loop<T, M>(
     }
 }
 
-#[cfg(feature = "raspberry_pi")]
-async fn update_aht20_loop<M>(
+async fn update_aht20_loop<M, I>(
     sensor_name: &sensors::SensorName,
-    mut sensor: raspberrypi::AHT20,
+    mut sensor: sensors::AHT20<I>,
     mut metrics: M,
 ) where
     M: Metrics,
+    I: domain::I2C,
 {
     let zero_temperature = sensors::Temperature::new(0.0).unwrap();
     let zero_humidity = sensors::Humidity::new(0.0).unwrap();
