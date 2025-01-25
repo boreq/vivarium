@@ -245,7 +245,7 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 [[package]]
 name = "duration_parser"
 version = "0.1.0"
-source = "git+https://github.com/boreq/rust-duration-parser?tag=v0.0.1#ec698e9785b5725011e0ae98f86c76dfc142f181"
+source = "git+https://github.com/boreq/rust-duration-parser?tag=v0.0.3#90da860901e069e1409ac3986f9a94d4fd0ea126"
 dependencies = [
  "thiserror 2.0.11",
 ]

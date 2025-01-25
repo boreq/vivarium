@@ -110,8 +110,8 @@ impl TryFrom<&SerializedWaterLevelSensor> for WaterLevelSensorDefinition {
 }
 
 fn make_parser() -> Result<duration_parser::Parser> {
-    Ok(duration_parser::Parser::new(duration_parser::Config::new(
-        duration_parser::Units::new(&[
+    Ok(duration_parser::Parser::new(
+        duration_parser::Config::new(duration_parser::Units::new(&[
             duration_parser::Unit::new(
                 duration_parser::UnitMagnitude::new(Duration::from_secs(1))?,
                 &[
@@ -133,8 +133,10 @@ fn make_parser() -> Result<duration_parser::Parser> {
                     duration_parser::UnitName::new("hours".to_string())?,
                 ],
             )?,
-        ])?,
-    )?))
+        ])?)?
+        .with_policy_for_spaces_between_value_and_unit(duration_parser::SpacePolicy::RequireOne)
+        .with_policy_for_spaces_between_components(duration_parser::SpacePolicy::RequireOne),
+    ))
 }
 
 #[cfg(test)]
