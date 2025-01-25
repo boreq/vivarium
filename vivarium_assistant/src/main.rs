@@ -19,9 +19,6 @@ use vivarium_assistant::ports::http::{self, Server};
 #[cfg(feature = "raspberry_pi")]
 use vivarium_assistant::adapters::raspberrypi;
 
-#[cfg(feature = "raspberry_pi")]
-use rppal::i2c::I2c;
-
 const UPDATE_SENSORS_EVERY: Duration = Duration::from_secs(10);
 const UPDATE_OUTPUTS_EVERY: Duration = Duration::from_millis(100);
 const WATER_SENSOR_SMOOTHING_PERIOD: Duration = Duration::from_mins(5); // should presumably be
@@ -43,7 +40,7 @@ async fn main() -> Result<()> {
     let i2c = adapters::MockI2C::new();
 
     #[cfg(feature = "raspberry_pi")]
-    let i2c = I2c::new();
+    let i2c = raspberrypi::I2C::new()?;
 
     let aht20 = sensors::AHT20::new(i2c)?;
 

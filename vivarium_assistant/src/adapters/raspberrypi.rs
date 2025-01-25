@@ -1,20 +1,15 @@
 #![cfg(feature = "raspberry_pi")]
 
-use std::{thread, time::Duration};
-
 use crate::{
-    domain::{
-        self,
-        sensors::{Humidity, Temperature},
-        PinNumber,
-    },
+    domain::{self, PinNumber},
     errors::{Error, Result},
 };
 use anyhow::anyhow;
 use rppal::{
     gpio::{self},
-    i2c,
+    i2c::I2c,
 };
+use std::time::Duration;
 
 #[derive(Clone)]
 pub struct GPIO {
@@ -129,9 +124,29 @@ pub struct I2C {
 }
 
 impl I2C {
-    pub fn new() -> Self {
-        I2C { i2c: I2c::new() }
+    pub fn new() -> Result<Self> {
+        Ok(I2C { i2c: I2c::new()? })
     }
 }
 
-impl domain::I2C for I2C {}
+impl domain::I2C for I2C {
+    fn set_slave_address(&mut self, slave_address: u16) -> Result<()> {
+        Ok(self.i2c.set_slave_address(slave_address)?)
+    }
+
+    fn write_read(&mut self, write_buffer: &[u8], read_buffer: &mut [u8]) -> Result<()> {
+        Ok(self.i2c.write_read(write_buffer, read_buffer)?)
+    }
+
+    fn block_write(&mut self, command: u8, buffer: &[u8]) -> Result<()> {
+        Ok(self.i2c.block_write(command, buffer)?)
+    }
+
+    fn read(&mut self, buffer: &mut [u8]) -> Result<usize> {
+        Ok(self.i2c.read(buffer)?)
+    }
+
+    fn write(&mut self, buffer: &[u8]) -> Result<usize> {
+        Ok(self.i2c.write(buffer)?)
+    }
+}
