@@ -8,6 +8,8 @@ pin = 27
 [[outputs.activations]]
 when = "17:30:00"
 for = "10 minutes"
+start_every = "30 minutes"
+times = 2
 
 [[outputs]]
 name = "Output 2"

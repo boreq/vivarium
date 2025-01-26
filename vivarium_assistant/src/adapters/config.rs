@@ -10,6 +10,7 @@ use crate::{
     domain::{sensors::WaterLevelSensorDefinition, PinNumber},
     errors::Result,
 };
+use anyhow::anyhow;
 use chrono::NaiveTime;
 use lazy_static::lazy_static;
 use serde::Deserialize;
@@ -66,9 +67,32 @@ impl TryFrom<&SerializedOutput> for OutputDefinition {
     fn try_from(value: &SerializedOutput) -> std::result::Result<Self, Self::Error> {
         let mut activations_vec = vec![];
         for activation in &value.activations {
+            let err = Err(anyhow!(
+                "start_every and times should either be both set or both shouldn't be set"
+            ));
             let when = NaiveTime::parse_from_str(&activation.when, "%H:%M:%S")?;
             let duration = DURATION_PARSER.parse(&activation.for_string)?;
-            activations_vec.push(ScheduledActivation::new(when, duration.as_secs() as u32)?);
+            let new_activation = ScheduledActivation::new(when, duration.as_secs() as u32)?;
+
+            match &activation.start_every {
+                Some(start_every) => match &activation.times {
+                    Some(times) => {
+                        let start_every = DURATION_PARSER.parse(start_every)?;
+                        activations_vec.append(
+                            &mut new_activation.repeat(start_every.as_secs() as u32, *times)?,
+                        );
+                    }
+                    None => {
+                        return err;
+                    }
+                },
+                None => match &activation.times {
+                    Some(_times) => return err,
+                    None => {
+                        activations_vec.push(new_activation);
+                    }
+                },
+            }
         }
 
         Ok(Self::new(
@@ -84,6 +108,9 @@ struct SerializedScheduledActivation {
     when: String,
     #[serde(rename = "for")]
     for_string: String,
+
+    start_every: Option<String>,
+    times: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -162,10 +189,16 @@ mod tests {
                         OutputName::new("Output 1")?,
                         PinNumber::new(27)?,
                         ScheduledActivations::new(
-                            vec![ScheduledActivation::new(
-                                NaiveTime::from_hms_opt(17, 30, 00).unwrap(),
-                                600,
-                            )?]
+                            vec![
+                                ScheduledActivation::new(
+                                    NaiveTime::from_hms_opt(17, 30, 00).unwrap(),
+                                    600,
+                                )?,
+                                ScheduledActivation::new(
+                                    NaiveTime::from_hms_opt(18, 00, 00).unwrap(),
+                                    600,
+                                )?,
+                            ]
                             .as_ref(),
                         )?,
                     ),
