@@ -95,7 +95,7 @@ impl ScheduledActivation {
             let when_jumps_over_midnight = when < self.when;
             if when_jumps_over_midnight {
                 return Err(anyhow!(
-                    "there is no way we meant to jump over midnight when repeating"
+                    "I find it highly suspicious that we jumped over midnight when repeating, I suspect we didn't want this to happen"
                 ));
             }
 
@@ -621,21 +621,21 @@ mod tests {
                 activation: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
                 start_every: 25 * 60 * 60,
                 times: 2,
-                result: Err(anyhow!( "there is no way we meant to jump by more than a whole day or a whole day when repeating")),
+                result: Err(anyhow!("there is no way we meant to jump by more than a whole day or a whole day when repeating")),
             },
             TestCase {
                 name: "start_every_equal_to_one_day",
                 activation: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
                 start_every: 24 * 60 * 60,
                 times: 2,
-                result: Err(anyhow!( "there is no way we meant to jump by more than a whole day or a whole day when repeating")),
+                result: Err(anyhow!("there is no way we meant to jump by more than a whole day or a whole day when repeating")),
             },
             TestCase {
                 name: "start_jumps_over_midnight",
                 activation: ScheduledActivation::new(new_time(23, 0, 0), 60)?,
                 start_every: 60 * 60,
                 times: 2,
-                result: Err(anyhow!( "there is no way we meant to jump over midnight when repeating")),
+                result: Err(anyhow!("I find it highly suspicious that we jumped over midnight when repeating, I suspect we didn't want this to happen")),
             },
             ];
 
