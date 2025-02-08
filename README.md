@@ -4,7 +4,7 @@ Automation and designs for my vivarium. This readme was written as a desperate
 attempt at helping future me when something inevitably breaks at the worst
 possible moment.
 
-## Notes
+## Vivarium
 
 ### Plants
 
@@ -151,3 +151,10 @@ The pump hose is a 10mm one.
 
 The waterfall was spraying at the back wall and had to be redone as the water
 was leaking. Checking for leaks as early as possible was a really good idea.
+
+## Isopodarium
+
+### Animals
+
+- [*Porcellio scaber* "Dalmatian"](https://duckduckgo.com/?q=Porcellio+scaber+%22Dalmatian%22&iar=images)
+- [*Cubaris* sp. "Panda King"](https://duckduckgo.com/?q=Cubaris+sp.+"Panda+King"&iar=images)
