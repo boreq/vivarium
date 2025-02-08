@@ -101,13 +101,10 @@ Open `lid.dxf` with `librecad` in case you need to redo a panel.
 
 ### Light
 
-The strips were self-adhesive, no extra glue was used which was a mistake as
-they started coming off, perhaps due to moisture. I'm using the strong double
-sided tape to put them back on. We will see if that will help.
+Use strong double-sided tape for LED strips, the tape that's on them is never
+strong enough.
 
-The power connector is one of the standard DC connectors, `2.5/5.5` or
-`2.1/5.5`. The connector on this power supply was replaced and it unscrews. It
-can be reused. The strips are 12V.
+The power connector is XT60.
 
 #### Strip 1
 

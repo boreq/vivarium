@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::domain::outputs::{
     OutputDefinition, OutputDefinitions, OutputName, ScheduledActivation, ScheduledActivations,
 };
@@ -8,8 +10,14 @@ use crate::{
     domain::{sensors::WaterLevelSensorDefinition, PinNumber},
     errors::Result,
 };
+use anyhow::anyhow;
 use chrono::NaiveTime;
+use lazy_static::lazy_static;
 use serde::Deserialize;
+
+lazy_static! {
+    static ref DURATION_PARSER: duration_parser::Parser = make_parser().unwrap();
+}
 
 pub fn load(config: &str) -> Result<Config> {
     let config: SerializedConfig = toml::from_str(config)?;
@@ -59,8 +67,32 @@ impl TryFrom<&SerializedOutput> for OutputDefinition {
     fn try_from(value: &SerializedOutput) -> std::result::Result<Self, Self::Error> {
         let mut activations_vec = vec![];
         for activation in &value.activations {
+            let err = Err(anyhow!(
+                "start_every and times should either be both set or both shouldn't be set"
+            ));
             let when = NaiveTime::parse_from_str(&activation.when, "%H:%M:%S")?;
-            activations_vec.push(ScheduledActivation::new(when, activation.for_seconds)?);
+            let duration = DURATION_PARSER.parse(&activation.for_string)?;
+            let new_activation = ScheduledActivation::new(when, duration.as_secs() as u32)?;
+
+            match &activation.start_every {
+                Some(start_every) => match &activation.times {
+                    Some(times) => {
+                        let start_every = DURATION_PARSER.parse(start_every)?;
+                        activations_vec.append(
+                            &mut new_activation.repeat(start_every.as_secs() as u32, *times)?,
+                        );
+                    }
+                    None => {
+                        return err;
+                    }
+                },
+                None => match &activation.times {
+                    Some(_times) => return err,
+                    None => {
+                        activations_vec.push(new_activation);
+                    }
+                },
+            }
         }
 
         Ok(Self::new(
@@ -75,7 +107,10 @@ impl TryFrom<&SerializedOutput> for OutputDefinition {
 struct SerializedScheduledActivation {
     when: String,
     #[serde(rename = "for")]
-    for_seconds: u32,
+    for_string: String,
+
+    start_every: Option<String>,
+    times: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -101,6 +136,36 @@ impl TryFrom<&SerializedWaterLevelSensor> for WaterLevelSensorDefinition {
     }
 }
 
+fn make_parser() -> Result<duration_parser::Parser> {
+    Ok(duration_parser::Parser::new(
+        duration_parser::Config::new(duration_parser::Units::new(&[
+            duration_parser::Unit::new(
+                duration_parser::UnitMagnitude::new(Duration::from_secs(1))?,
+                &[
+                    duration_parser::UnitName::new("second".to_string())?,
+                    duration_parser::UnitName::new("seconds".to_string())?,
+                ],
+            )?,
+            duration_parser::Unit::new(
+                duration_parser::UnitMagnitude::new(Duration::from_secs(60))?,
+                &[
+                    duration_parser::UnitName::new("minute".to_string())?,
+                    duration_parser::UnitName::new("minutes".to_string())?,
+                ],
+            )?,
+            duration_parser::Unit::new(
+                duration_parser::UnitMagnitude::new(Duration::from_secs(60 * 60))?,
+                &[
+                    duration_parser::UnitName::new("hour".to_string())?,
+                    duration_parser::UnitName::new("hours".to_string())?,
+                ],
+            )?,
+        ])?)?
+        .with_policy_for_spaces_between_value_and_unit(duration_parser::SpacePolicy::RequireOne)
+        .with_policy_for_spaces_between_components(duration_parser::SpacePolicy::RequireOne),
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -124,10 +189,16 @@ mod tests {
                         OutputName::new("Output 1")?,
                         PinNumber::new(27)?,
                         ScheduledActivations::new(
-                            vec![ScheduledActivation::new(
-                                NaiveTime::from_hms_opt(17, 30, 00).unwrap(),
-                                600,
-                            )?]
+                            vec![
+                                ScheduledActivation::new(
+                                    NaiveTime::from_hms_opt(17, 30, 00).unwrap(),
+                                    600,
+                                )?,
+                                ScheduledActivation::new(
+                                    NaiveTime::from_hms_opt(18, 00, 00).unwrap(),
+                                    600,
+                                )?,
+                            ]
                             .as_ref(),
                         )?,
                     ),
@@ -138,11 +209,11 @@ mod tests {
                             vec![
                                 ScheduledActivation::new(
                                     NaiveTime::from_hms_opt(17, 30, 00).unwrap(),
-                                    600,
+                                    30,
                                 )?,
                                 ScheduledActivation::new(
                                     NaiveTime::from_hms_opt(18, 30, 00).unwrap(),
-                                    600,
+                                    60 * 60 + 10 * 60 + 20,
                                 )?,
                             ]
                             .as_ref(),

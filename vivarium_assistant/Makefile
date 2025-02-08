@@ -34,7 +34,7 @@ build-release:
 
 .PHONY: run
 run:
-	RUST_LOG=debug cargo run --bin $(MAIN_BINARY_NAME) --features=not_raspberry_pi example_config.toml
+	RUST_LOG=debug cargo run --bin $(MAIN_BINARY_NAME) example_config.toml
 
 .PHONY: tools
 tools:
@@ -44,9 +44,9 @@ tools:
 check-repository-unchanged:
 	./tools/check_repository_unchanged.sh
 
-CROSS_COMPILATION_RPI_RUSTFLAGS=-C target-cpu=arm1176jz-s
-CROSS_COMPILATION_RPI_TARGET=arm-unknown-linux-gnueabihf
-CROSS_COMPILATION_RPI_COMMAND=RUSTFLAGS='$(CROSS_COMPILATION_RPI_RUSTFLAGS)' CROSS_CONTAINER_ENGINE=podman cross build --target=$(CROSS_COMPILATION_RPI_TARGET) 
+CROSS_RPI_RUSTFLAGS=-C target-cpu=arm1176jz-s
+CROSS_RPI_TARGET=arm-unknown-linux-gnueabihf
+CROSS_RPI_COMMAND_BUILD=RUSTFLAGS='$(CROSS_RPI_RUSTFLAGS)' CROSS_CONTAINER_ENGINE=docker cross build --target=$(CROSS_RPI_TARGET) --features=raspberry_pi
 
 .PHONY: update
 update: cross-compile-release cross-compile-release-push restart
@@ -63,16 +63,16 @@ cross-compile-push: cross-compile-debug-push cross-compile-release-push
 
 .PHONY: cross-compile-release
 cross-compile-release:
-	$(CROSS_COMPILATION_RPI_COMMAND) --bin=$(MAIN_BINARY_NAME) --release
+	$(CROSS_RPI_COMMAND_BUILD) --bin=$(MAIN_BINARY_NAME) --release
 
 .PHONY: cross-compile-release-push
 cross-compile-release-push:
-	rsync --progress -z ./target/$(CROSS_COMPILATION_RPI_TARGET)/release/$(MAIN_BINARY_NAME) terrarium:~/vivarium_assistant_cross_compile_release
+	rsync --progress -z ./target/$(CROSS_RPI_TARGET)/release/$(MAIN_BINARY_NAME) terrarium:~/vivarium_assistant_cross_compile_release
 
 .PHONY: cross-compile-debug
 cross-compile-debug:
-	$(CROSS_COMPILATION_RPI_COMMAND) --bin=$(MAIN_BINARY_NAME)
+	$(CROSS_RPI_COMMAND_BUILD) --bin=$(MAIN_BINARY_NAME)
 
 .PHONY: cross-compile-debug-push
 cross-compile-debug-push:
-	rsync --progress -z ./target/$(CROSS_COMPILATION_RPI_TARGET)/debug/$(MAIN_BINARY_NAME) terrarium:~/vivarium_assistant_cross_compile_debug
+	rsync --progress -z ./target/$(CROSS_RPI_TARGET)/debug/$(MAIN_BINARY_NAME) terrarium:~/vivarium_assistant_cross_compile_debug

@@ -7,7 +7,9 @@ pin = 27
 
 [[outputs.activations]]
 when = "17:30:00"
-for = 600
+for = "10 minutes"
+start_every = "30 minutes"
+times = 2
 
 [[outputs]]
 name = "Output 2"
@@ -15,11 +17,11 @@ pin = 28
 
 [[outputs.activations]]
 when = "17:30:00"
-for = 600
+for = "0.5 minutes"
 
 [[outputs.activations]]
 when = "18:30:00"
-for = 600
+for = "1 hour 10 minutes 20 seconds"
 
 [[outputs]]
 name = "Output 3"

@@ -3,12 +3,11 @@
 use anyhow::anyhow;
 use env_logger::Env;
 use log::{error, info};
-use rppal::i2c::I2c;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{env, fs};
 use tokio::time;
-use vivarium_assistant::adapters::{self, config, metrics, raspberrypi};
+use vivarium_assistant::adapters::{self, config, metrics};
 use vivarium_assistant::config::Config;
 use vivarium_assistant::domain::outputs::{CurrentTimeProvider, OutputStatus};
 use vivarium_assistant::domain::sensors::{MedianCache, WaterLevel};
@@ -16,6 +15,9 @@ use vivarium_assistant::domain::{self, GPIO};
 use vivarium_assistant::domain::{outputs, sensors};
 use vivarium_assistant::errors::Result;
 use vivarium_assistant::ports::http::{self, Server};
+
+#[cfg(feature = "raspberry_pi")]
+use vivarium_assistant::adapters::raspberrypi;
 
 const UPDATE_SENSORS_EVERY: Duration = Duration::from_secs(10);
 const UPDATE_OUTPUTS_EVERY: Duration = Duration::from_millis(100);
@@ -28,11 +30,19 @@ const WATER_SENSOR_SMOOTHING_PERIOD: Duration = Duration::from_mins(5); // shoul
 async fn main() -> Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    #[cfg(feature = "not_raspberry_pi")]
+    #[cfg(not(feature = "raspberry_pi"))]
     let gpio = adapters::MockGPIO::new();
 
-    #[cfg(not(feature = "not_raspberry_pi"))]
+    #[cfg(feature = "raspberry_pi")]
     let gpio = raspberrypi::GPIO::new()?;
+
+    #[cfg(not(feature = "raspberry_pi"))]
+    let i2c = adapters::MockI2C::new();
+
+    #[cfg(feature = "raspberry_pi")]
+    let i2c = raspberrypi::I2C::new()?;
+
+    let aht20 = sensors::AHT20::new(i2c)?;
 
     let current_time_provider = adapters::CurrentTimeProvider::new();
     let mut metrics = metrics::Metrics::new()?;
@@ -70,15 +80,15 @@ async fn main() -> Result<()> {
         let metrics = metrics.clone();
         async move { update_water_sensors_loop(water_level_sensors, metrics).await }
     });
+
     if let Some(aht_20_name) = config.aht_20() {
         tokio::spawn({
-            let i2c = I2c::new()?;
-            let aht20 = raspberrypi::AHT20::new(i2c)?;
-            let aht_20_name = aht_20_name.clone();
             let metrics = metrics.clone();
+            let aht_20_name = aht_20_name.clone();
             async move { update_aht20_loop(&aht_20_name, aht20, metrics).await }
         });
     }
+
     tokio::spawn({
         let metrics = metrics.clone();
         let controller = controller.clone();
@@ -169,12 +179,13 @@ async fn update_water_sensors_loop<T, M>(
     }
 }
 
-async fn update_aht20_loop<M>(
+async fn update_aht20_loop<M, I>(
     sensor_name: &sensors::SensorName,
-    mut sensor: raspberrypi::AHT20,
+    mut sensor: sensors::AHT20<I>,
     mut metrics: M,
 ) where
     M: Metrics,
+    I: domain::I2C,
 {
     let zero_temperature = sensors::Temperature::new(0.0).unwrap();
     let zero_humidity = sensors::Humidity::new(0.0).unwrap();

@@ -1,10 +1,11 @@
 use super::{InputPin, OutputPin, OutputPinState, PinNumber, GPIO};
 use crate::errors::Result;
 use anyhow::anyhow;
+use chrono::TimeDelta;
 use chrono::{DateTime, Local, NaiveTime, Utc};
-use chrono::{TimeDelta, Timelike};
 use log::info;
 use std::fmt::Display;
+use std::time::Duration;
 
 pub trait CurrentTimeProvider {
     fn now(&self) -> DateTime<Utc>;
@@ -25,9 +26,10 @@ impl ScheduledActivation {
         }
 
         if for_seconds > ScheduledActivation::SECONDS_IN_AN_IMAGINARY_DAY {
-            return Err(anyhow!(
-                format!(
-                "since this type effectively represents durations on an imaginary clock face this time the day really is up to {} seconds long and it isn't just the programmer's delusion; the provided for_seconds exceeds that",
+            return Err(anyhow!(format!(
+                "since this type effectively represents durations on an imaginary clock face this
+                time the day really is up to {} seconds long and it isn't just the programmer's
+                delusion; the provided for_seconds exceeds that",
                 ScheduledActivation::SECONDS_IN_AN_IMAGINARY_DAY
             )));
         }
@@ -40,9 +42,6 @@ impl ScheduledActivation {
             return true;
         }
         if self.has_inside(&other.end()) {
-            return true;
-        }
-        if other.has_inside(&self.when) {
             return true;
         }
         if other.has_inside(&self.end()) {
@@ -60,12 +59,50 @@ impl ScheduledActivation {
             return true;
         }
 
-        let jumps_over_midnight = end.hour() < start.hour();
+        let jumps_over_midnight = end < start;
         if jumps_over_midnight {
             time >= &start || time <= &end
         } else {
             time >= &start && time <= &end
         }
+    }
+
+    pub fn repeat(&self, start_every_seconds: u32, times: u32) -> Result<Vec<ScheduledActivation>> {
+        if start_every_seconds == 0 {
+            return Err(anyhow!("repeating every zero seconds makes no sense"));
+        }
+
+        if start_every_seconds <= self.for_seconds {
+            return Err(anyhow!("repeating more often than or just as often as for_seconds makes no sense, the results will overlap"));
+        }
+
+        if times <= 1 {
+            return Err(anyhow!(
+                "repeating less than two times makes no sense, just use the existing activation"
+            ));
+        }
+
+        let mut result = vec![];
+        let start_every = Duration::from_secs(start_every_seconds.into());
+        for i in 0..times {
+            let jump = start_every * i;
+            if jump.as_secs() >= ScheduledActivation::SECONDS_IN_AN_IMAGINARY_DAY.into() {
+                return Err(anyhow!(
+                    "there is no way we meant to jump by more than a whole day or a whole day when repeating"
+                ));
+            }
+            let when = self.when + jump;
+            let when_jumps_over_midnight = when < self.when;
+            if when_jumps_over_midnight {
+                return Err(anyhow!(
+                    "I find it highly suspicious that we jumped over midnight when repeating, I suspect we didn't want this to happen"
+                ));
+            }
+
+            let activation = ScheduledActivation::new(when, self.for_seconds)?;
+            result.push(activation);
+        }
+        Ok(result)
     }
 
     fn end(&self) -> NaiveTime {
@@ -366,6 +403,8 @@ mod tests {
 
     #[cfg(test)]
     mod scheduled_activation {
+        use std::panic;
+
         use super::*;
 
         #[test]
@@ -523,6 +562,99 @@ mod tests {
                     test_case.b.overlaps(&test_case.a),
                     test_case.expected_overlaps
                 );
+            }
+
+            Ok(())
+        }
+
+        #[test]
+        fn test_repeat() -> Result<()> {
+            struct TestCase<'a> {
+                name: &'a str,
+                activation: ScheduledActivation,
+                start_every: u32,
+                times: u32,
+                result: Result<Vec<ScheduledActivation>>,
+            }
+
+            let test_cases = vec![
+                TestCase {
+                name: "zero_times",
+                activation: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                start_every: 15,
+                times: 0,
+                result: Err(anyhow!("repeating less than two times makes no sense, just use the existing activation")),
+            },
+                TestCase {
+                name: "one_time",
+                activation: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                start_every: 15,
+                times: 1,
+                result: Err(anyhow!("repeating less than two times makes no sense, just use the existing activation")),
+            },
+                TestCase {
+                name: "just_as_often",
+                activation: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                start_every: 10,
+                times: 2,
+                result: Err(anyhow!("repeating more often than or just as often as for_seconds makes no sense, the results will overlap")),
+            },
+                TestCase {
+                name: "more_often",
+                activation: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                start_every: 9,
+                times: 2,
+                result: Err(anyhow!("repeating more often than or just as often as for_seconds makes no sense, the results will overlap")),
+            },
+                TestCase {
+                name: "simple",
+                activation: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                start_every: 15,
+                times: 2,
+                result: Ok(vec![
+                    ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                    ScheduledActivation::new(new_time(14, 0, 15), 10)?,
+                ]),
+            },
+            TestCase {
+                name: "start_every_longer_than_a_day",
+                activation: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                start_every: 25 * 60 * 60,
+                times: 2,
+                result: Err(anyhow!("there is no way we meant to jump by more than a whole day or a whole day when repeating")),
+            },
+            TestCase {
+                name: "start_every_equal_to_one_day",
+                activation: ScheduledActivation::new(new_time(14, 0, 0), 10)?,
+                start_every: 24 * 60 * 60,
+                times: 2,
+                result: Err(anyhow!("there is no way we meant to jump by more than a whole day or a whole day when repeating")),
+            },
+            TestCase {
+                name: "start_jumps_over_midnight",
+                activation: ScheduledActivation::new(new_time(23, 0, 0), 60)?,
+                start_every: 60 * 60,
+                times: 2,
+                result: Err(anyhow!("I find it highly suspicious that we jumped over midnight when repeating, I suspect we didn't want this to happen")),
+            },
+            ];
+
+            for test_case in &test_cases {
+                println!("test case: {}", test_case.name);
+
+                let result = test_case
+                    .activation
+                    .repeat(test_case.start_every, test_case.times);
+                match &test_case.result {
+                    Ok(a) => match result {
+                        Ok(b) => assert_eq!(a, &b),
+                        Err(err_b) => panic!("got an error when a value was expected: {:?}", err_b),
+                    },
+                    Err(err_a) => match result {
+                        Ok(b) => panic!("got a value when an error was expected: {:?}", b),
+                        Err(err_b) => assert_eq!(err_a.to_string(), err_b.to_string()),
+                    },
+                }
             }
 
             Ok(())

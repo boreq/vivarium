@@ -116,3 +116,39 @@ impl domain::InputPin for MockInputPin {
         Err(anyhow!("not implemented"))
     }
 }
+
+pub struct MockI2C {}
+
+impl MockI2C {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Default for MockI2C {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl domain::I2C for MockI2C {
+    fn set_slave_address(&mut self, _slave_address: u16) -> Result<()> {
+        Err(anyhow!("not implemented"))
+    }
+
+    fn write_read(&mut self, _write_buffer: &[u8], _read_buffer: &mut [u8]) -> Result<()> {
+        Err(anyhow!("not implemented"))
+    }
+
+    fn block_write(&mut self, _command: u8, _buffer: &[u8]) -> Result<()> {
+        Err(anyhow!("not implemented"))
+    }
+
+    fn read(&mut self, _buffer: &mut [u8]) -> Result<usize> {
+        Err(anyhow!("not implemented"))
+    }
+
+    fn write(&mut self, _buffer: &[u8]) -> Result<usize> {
+        Err(anyhow!("not implemented"))
+    }
+}
