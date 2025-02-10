@@ -155,3 +155,7 @@ was leaking. Checking for leaks as early as possible was a really good idea.
 
 - [*Porcellio scaber* "Dalmatian"](https://duckduckgo.com/?q=Porcellio+scaber+%22Dalmatian%22&iar=images)
 - [*Cubaris* sp. "Panda King"](https://duckduckgo.com/?q=Cubaris+sp.+"Panda+King"&iar=images)
+
+### Terrarium
+
+- A riced up [ÅKERBÄR from IKEA](https://archive.is/wgjBQ).
