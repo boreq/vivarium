@@ -46,7 +46,7 @@ check-repository-unchanged:
 
 CROSS_RPI_RUSTFLAGS=-C target-cpu=arm1176jz-s
 CROSS_RPI_TARGET=arm-unknown-linux-gnueabihf
-CROSS_RPI_COMMAND_BUILD=RUSTFLAGS='$(CROSS_RPI_RUSTFLAGS)' CROSS_CONTAINER_ENGINE=docker cross build --target=$(CROSS_RPI_TARGET) --features=raspberry_pi
+CROSS_RPI_COMMAND_BUILD=RUSTFLAGS='$(CROSS_RPI_RUSTFLAGS)' CROSS_CONTAINER_ENGINE=podman cross build --target=$(CROSS_RPI_TARGET) --features=raspberry_pi
 
 .PHONY: update
 update: cross-compile-release cross-compile-release-push restart
