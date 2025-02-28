@@ -16,7 +16,7 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 
 lazy_static! {
-    static ref DURATION_PARSER: duration_parser::Parser = make_parser().unwrap();
+    pub static ref DURATION_PARSER: duration_parser::Parser = make_parser().unwrap();
 }
 
 pub fn load(config: &str) -> Result<Config> {

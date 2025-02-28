@@ -1,5 +1,8 @@
 use crate::{
-    adapters::metrics::{self},
+    adapters::{
+        config::DURATION_PARSER,
+        metrics::{self},
+    },
     config,
     domain::outputs::{self},
     errors::{Error, Result},
@@ -81,7 +84,11 @@ where
     let name = outputs::OutputName::new(name)?;
     let state = parse_state(&payload.state)?;
     let when = chrono::Local::now().naive_local().time();
-    let activation = outputs::ScheduledActivation::new(when, payload.for_seconds)?;
+    let for_seconds = DURATION_PARSER
+        .parse(&payload.for_string)?
+        .as_secs()
+        .try_into()?;
+    let activation = outputs::ScheduledActivation::new(when, for_seconds)?;
     Ok(deps.controller.add_override(name, state, activation)?)
 }
 
@@ -144,7 +151,8 @@ where
 #[derive(Deserialize)]
 struct SerializedOverride {
     state: String,
-    for_seconds: u32,
+    #[serde(rename = "for")]
+    for_string: String,
 }
 
 fn parse_state(s: &str) -> Result<outputs::OutputState> {
